@@ -3,7 +3,7 @@ import { getCompanies } from "../../service/admin/customerApi";
 import { getCompanyByCustomer } from "../../service/employee/returns";
 import { getLRData, currentExport, exportAll, editLr, deleteLr } from "../../service/admin/lr";
 import Pagination from "../../components/pagination/pagenation";
-import { Pencil, Trash2, Eye } from "lucide-react";  
+import { Pencil, Trash2, Eye, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";  
 import Swal from "sweetalert2";
 import LRModal from "../../models/admin/lrUpdate/lrModel";
 import ClubbedModal from "../../models/employee/LR/CluppedModal";
@@ -20,6 +20,12 @@ const LRupdate = () => {
     invoiceNo: "",
     chequeNo: "",
     recordsPerPage: "50",
+  });
+
+  // Sorting state
+  const [sortConfig, setSortConfig] = useState({
+    key: "",
+    direction: "asc"
   });
 
   // Modal states
@@ -44,6 +50,7 @@ const LRupdate = () => {
   const [showCompanyDropdown, setShowCompanyDropdown] = useState(false);
   const [loadingCompanies, setLoadingCompanies] = useState(false);
   const [tableData, setTableData] = useState([]);
+  const [sortedData, setSortedData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [noData, setNoData] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
@@ -63,6 +70,105 @@ const LRupdate = () => {
   useEffect(() => {
     fetchLRData();
   }, [currentPage, form.recordsPerPage]);
+
+  // Apply sorting when tableData or sortConfig changes
+  useEffect(() => {
+    if (tableData.length > 0) {
+      const sorted = [...tableData].sort((a, b) => {
+        if (!sortConfig.key) return 0;
+
+        let aValue = getValueForSorting(a, sortConfig.key);
+        let bValue = getValueForSorting(b, sortConfig.key);
+
+        // Handle undefined or null values
+        if (aValue === undefined || aValue === null) aValue = '';
+        if (bValue === undefined || bValue === null) bValue = '';
+
+        // Compare values
+        if (aValue < bValue) {
+          return sortConfig.direction === 'asc' ? -1 : 1;
+        }
+        if (aValue > bValue) {
+          return sortConfig.direction === 'asc' ? 1 : -1;
+        }
+        return 0;
+      });
+      setSortedData(sorted);
+    } else {
+      setSortedData([]);
+    }
+  }, [tableData, sortConfig]);
+
+  // Helper function to get value for sorting based on column key
+  const getValueForSorting = (item, key) => {
+    switch(key) {
+      case 'created':
+        return item.Created || '';
+      case 'invoiceNo':
+        return item["Invoice no"] || item.invoice_no || '';
+      case 'invoiceDate':
+        return item["Invoice date"] || item.invoice_date || '';
+      case 'transportName':
+        return item["Transport Name"] || item.transport_name || '';
+      case 'companyName':
+        return item["Company name"] || item.company_name || '';
+      case 'customerName':
+        return item["Customer name"] || item.customer_name || '';
+      case 'customerCity':
+        return item["Customer city"] || item.customer_city || '';
+      case 'invoiceValue':
+        // Convert to number for numeric sorting
+        const value = item["Invoice value"] || item.invoice_value || '0';
+        return parseFloat(value.toString().replace(/[^0-9.-]/g, '')) || 0;
+      case 'courierNo':
+        return item["Courier no"] || item.courier_no || '';
+      case 'regularBoxes':
+        // Convert to number for numeric sorting
+        return parseInt(item["No of box"] || item.no_of_boxes || '0') || 0;
+      case 'clubbedBox':
+        // Convert to number for numeric sorting
+        return parseInt(item["Clubed Boxes"] || item.clubedBoxes || item.Clubed_boxes || '0') || 0;
+      case 'reference':
+        return item.Reference || item.reference || '';
+      case 'weight':
+        // Convert to number for numeric sorting
+        const weight = item.Weight || '0';
+        return parseFloat(weight.toString().replace(/[^0-9.-]/g, '')) || 0;
+      case 'lrNo':
+        return item["Lr no"] || item.lr_no || '';
+      case 'lrDate':
+        return item["Lr date"] || item.lr_date || '';
+      case 'ewayBill':
+        return item["Eway Bill"] || item.eway_bill || '';
+      case 'chequeNo':
+        return item["Cheque no"] || item.cheque_no || '';
+      case 'chequeDate':
+        return item["Cheque date"] || item.cheque_date || '';
+      case 'comments':
+        return item.Comments || item.comments || '';
+      default:
+        return '';
+    }
+  };
+
+  // Handle sort request
+  const requestSort = (key) => {
+    let direction = 'asc';
+    if (sortConfig.key === key && sortConfig.direction === 'asc') {
+      direction = 'desc';
+    }
+    setSortConfig({ key, direction });
+  };
+
+  // Get sort icon for header
+  const getSortIcon = (key) => {
+    if (sortConfig.key !== key) {
+      return <ArrowUpDown size={14} className="ml-1 inline-block" />;
+    }
+    return sortConfig.direction === 'asc' 
+      ? <ArrowUp size={14} className="ml-1 inline-block" /> 
+      : <ArrowDown size={14} className="ml-1 inline-block" />;
+  };
 
   // Customer functions
   const fetchCustomers = async (companyId = "") => {
@@ -154,6 +260,7 @@ const LRupdate = () => {
       if (!apiData) {
         setNoData(true);
         setTableData([]);
+        setSortedData([]);
         setTotalRecords(0);
         setTotalPages(0);
         return;
@@ -165,10 +272,12 @@ const LRupdate = () => {
       if (!data || data.length === 0) {
         setNoData(true);
         setTableData([]);
+        setSortedData([]);
         setTotalRecords(0);
         setTotalPages(0);
       } else {
         setTableData(data);
+        setSortedData(data); // Initialize sorted data with original data
         setTotalRecords(total);
 
         const recordsPerPageNum = parseInt(form.recordsPerPage);
@@ -179,6 +288,7 @@ const LRupdate = () => {
       console.error("❌ Error fetching LR data:", error);
       setNoData(true);
       setTableData([]);
+      setSortedData([]);
       setTotalRecords(0);
       setTotalPages(0);
       
@@ -245,63 +355,81 @@ const LRupdate = () => {
 
   // Export Current Page
   const handleExportCurrent = async () => {
-    try {
-      setExporting(true);
+  try {
+    setExporting(true);
 
-      const params = {
-        page: currentPage,
-        limit: parseInt(form.recordsPerPage),
-        start_date: form.startDate || undefined,
-        end_date: form.endDate || undefined,
-        company_id: selectedCompanyId || undefined,
-        lr_no: form.lrNo || undefined,
-        courier_no: form.courierNo || undefined,
-        invoice_no: form.invoiceNo || undefined,
-        cheque_no: form.chequeNo || undefined,
-        customer_name: form.customerName || undefined,
-        company_name: form.companyName || undefined,
-      };
+    const params = {
+      page: currentPage,
+      limit: parseInt(form.recordsPerPage),
+      start_date: form.startDate || undefined,
+      end_date: form.endDate || undefined,
+      company_id: selectedCompanyId || undefined, // Keep this as company_id for the mapping function
+      lr_no: form.lrNo || undefined,
+      courier_no: form.courierNo || undefined,
+      invoice_no: form.invoiceNo || undefined,
+      cheque_no: form.chequeNo || undefined,
+      customer_name: form.customerName || undefined,
+      company_name: form.companyName || undefined,
+      // Add search parameter combining all search fields
+      search: [
+        form.lrNo,
+        form.courierNo,
+        form.invoiceNo,
+        form.chequeNo,
+        form.customerName,
+        form.companyName
+      ].filter(Boolean).join(' ') || undefined
+    };
 
-      const confirmResult = await Swal.fire({
-        title: "Export Current Page?",
-        text: "Do you want to export only the current page data?",
-        icon: "question",
-        showCancelButton: true,
-        confirmButtonText: "Yes, export it!",
-        cancelButtonText: "Cancel",
-        confirmButtonColor: "#3085d6",
-        cancelButtonColor: "#d33",
-      });
-
-      if (confirmResult.isConfirmed) {
-        const exportUrl = currentExport(params);
-        const link = document.createElement("a");
-        link.href = exportUrl;
-        link.setAttribute("download", "lr_data_current.csv");
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-
-        Swal.fire({
-          title: "Export Started!",
-          text: "Your current page data export is in progress.",
-          icon: "success",
-          timer: 2000,
-          showConfirmButton: false,
-        });
+    // Remove undefined values
+    Object.keys(params).forEach(key => {
+      if (params[key] === undefined || params[key] === '') {
+        delete params[key];
       }
-    } catch (error) {
-      console.log("Error exporting current page", error);
+    });
+
+    const confirmResult = await Swal.fire({
+      title: "Export Current Page?",
+      text: "Do you want to export only the current page data?",
+      icon: "question",
+      showCancelButton: true,
+      confirmButtonText: "Yes, export it!",
+      cancelButtonText: "Cancel",
+      confirmButtonColor: "#3085d6",
+      cancelButtonColor: "#d33",
+    });
+
+    if (confirmResult.isConfirmed) {
+      const exportUrl = currentExport(params);
+      console.log('Export URL:', exportUrl); // Debug log
+      
+      const link = document.createElement("a");
+      link.href = exportUrl;
+      link.setAttribute("download", "lr_data_current.csv");
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
       Swal.fire({
-        title: "Export Failed",
-        text: "Something went wrong while exporting current page data.",
-        icon: "error",
-        confirmButtonColor: "#d33",
+        title: "Export Started!",
+        text: "Your current page data export is in progress.",
+        icon: "success",
+        timer: 2000,
+        showConfirmButton: false,
       });
-    } finally {
-      setExporting(false);
     }
-  };
+  } catch (error) {
+    console.log("Error exporting current page", error);
+    Swal.fire({
+      title: "Export Failed",
+      text: "Something went wrong while exporting current page data.",
+      icon: "error",
+      confirmButtonColor: "#d33",
+    });
+  } finally {
+    setExporting(false);
+  }
+};
 
   // Export All Pages
   const handleExportAll = async () => {
@@ -979,36 +1107,112 @@ const LRupdate = () => {
       {/* Table Section */}
       {tableData.length > 0 && (
         <div className="relative rounded-xl shadow-sm border border-gray-200 mt-4">
-          <div className="overflow-y-auto max-h-[700px] scrollbar-hide">
+          <div className="overflow-y-auto max-h-[700px] ">
             <table className="min-w-full text-sm text-gray-700 border-collapse">
               <thead className="bg-gray-100 text-gray-600 uppercase text-xs sticky top-0 z-10">
                 <tr>
                   <th className="px-4 py-2 text-left">SNO</th>
                   <th className="px-4 py-2 text-left">ACTIONS</th>
-                  <th className="px-4 py-2 text-left">CREATED</th>
-                  <th className="px-4 py-2 text-left">INVOICE NO</th>
-                  <th className="px-4 py-2 text-left">INVOICE DATE</th>
-                  <th className="px-4 py-2 text-left">TRANSPORT NAME</th>
-                  <th className="px-4 py-2 text-left">COMPANY NAME</th>
-                  <th className="px-4 py-2 text-left">CUSTOMER NAME</th>
-                  <th className="px-4 py-2 text-left">CUSTOMER CITY</th>
-                  <th className="px-4 py-2 text-left">INVOICE VALUE</th>
-                  <th className="px-4 py-2 text-left">COURIER NO</th>
-                  <th className="px-4 py-2 text-left">REGULAR BOXES</th>
-                  <th className="px-4 py-2 text-left">CLUBED BOX</th>
+                  <th className="px-4 py-2 text-left cursor-pointer hover:bg-gray-200" onClick={() => requestSort('created')}>
+                    <div className="flex items-center">
+                      CREATED {getSortIcon('created')}
+                    </div>
+                  </th>
+                  <th className="px-4 py-2 text-left cursor-pointer hover:bg-gray-200" onClick={() => requestSort('invoiceNo')}>
+                    <div className="flex items-center">
+                      INVOICE NO {getSortIcon('invoiceNo')}
+                    </div>
+                  </th>
+                  <th className="px-4 py-2 text-left cursor-pointer hover:bg-gray-200" onClick={() => requestSort('invoiceDate')}>
+                    <div className="flex items-center">
+                      INVOICE DATE {getSortIcon('invoiceDate')}
+                    </div>
+                  </th>
+                  <th className="px-4 py-2 text-left cursor-pointer hover:bg-gray-200" onClick={() => requestSort('transportName')}>
+                    <div className="flex items-center">
+                      TRANSPORT NAME {getSortIcon('transportName')}
+                    </div>
+                  </th>
+                  <th className="px-4 py-2 text-left cursor-pointer hover:bg-gray-200" onClick={() => requestSort('companyName')}>
+                    <div className="flex items-center">
+                      COMPANY NAME {getSortIcon('companyName')}
+                    </div>
+                  </th>
+                  <th className="px-4 py-2 text-left cursor-pointer hover:bg-gray-200" onClick={() => requestSort('customerName')}>
+                    <div className="flex items-center">
+                      CUSTOMER NAME {getSortIcon('customerName')}
+                    </div>
+                  </th>
+                  <th className="px-4 py-2 text-left cursor-pointer hover:bg-gray-200" onClick={() => requestSort('customerCity')}>
+                    <div className="flex items-center">
+                      CUSTOMER CITY {getSortIcon('customerCity')}
+                    </div>
+                  </th>
+                  <th className="px-4 py-2 text-left cursor-pointer hover:bg-gray-200" onClick={() => requestSort('invoiceValue')}>
+                    <div className="flex items-center">
+                      INVOICE VALUE {getSortIcon('invoiceValue')}
+                    </div>
+                  </th>
+                  <th className="px-4 py-2 text-left cursor-pointer hover:bg-gray-200" onClick={() => requestSort('courierNo')}>
+                    <div className="flex items-center">
+                      COURIER NO {getSortIcon('courierNo')}
+                    </div>
+                  </th>
+                  <th className="px-4 py-2 text-left cursor-pointer hover:bg-gray-200" onClick={() => requestSort('regularBoxes')}>
+                    <div className="flex items-center">
+                      REGULAR BOXES {getSortIcon('regularBoxes')}
+                    </div>
+                  </th>
+                  <th className="px-4 py-2 text-left cursor-pointer hover:bg-gray-200" onClick={() => requestSort('clubbedBox')}>
+                    <div className="flex items-center">
+                      CLUBED BOX {getSortIcon('clubbedBox')}
+                    </div>
+                  </th>
                   <th className="px-4 py-2 text-left">CASE SPLIT-UP</th>
-                  <th className="px-4 py-2 text-left">REFERENCE</th>
-                  <th className="px-4 py-2 text-left">WEIGHT</th>
-                  <th className="px-4 py-2 text-center">LR NO</th>
-                  <th className="px-4 py-2 text-left">LR DATE</th>
-                  <th className="px-4 py-2 text-left">EWAY BILL</th>
-                  <th className="px-4 py-2 text-left">CHEQUE NO</th>
-                  <th className="px-4 py-2 text-left">CHEQUE DATE</th>
-                  <th className="px-4 py-2 text-left">COMMENTS</th>
+                  <th className="px-4 py-2 text-left cursor-pointer hover:bg-gray-200" onClick={() => requestSort('reference')}>
+                    <div className="flex items-center">
+                      REFERENCE {getSortIcon('reference')}
+                    </div>
+                  </th>
+                  <th className="px-4 py-2 text-left cursor-pointer hover:bg-gray-200" onClick={() => requestSort('weight')}>
+                    <div className="flex items-center">
+                      WEIGHT {getSortIcon('weight')}
+                    </div>
+                  </th>
+                  <th className="px-4 py-2 text-center cursor-pointer hover:bg-gray-200" onClick={() => requestSort('lrNo')}>
+                    <div className="flex items-center justify-center">
+                      LR NO {getSortIcon('lrNo')}
+                    </div>
+                  </th>
+                  <th className="px-4 py-2 text-left cursor-pointer hover:bg-gray-200" onClick={() => requestSort('lrDate')}>
+                    <div className="flex items-center">
+                      LR DATE {getSortIcon('lrDate')}
+                    </div>
+                  </th>
+                  <th className="px-4 py-2 text-left cursor-pointer hover:bg-gray-200" onClick={() => requestSort('ewayBill')}>
+                    <div className="flex items-center">
+                      EWAY BILL {getSortIcon('ewayBill')}
+                    </div>
+                  </th>
+                  <th className="px-4 py-2 text-left cursor-pointer hover:bg-gray-200" onClick={() => requestSort('chequeNo')}>
+                    <div className="flex items-center">
+                      CHEQUE NO {getSortIcon('chequeNo')}
+                    </div>
+                  </th>
+                  <th className="px-4 py-2 text-left cursor-pointer hover:bg-gray-200" onClick={() => requestSort('chequeDate')}>
+                    <div className="flex items-center">
+                      CHEQUE DATE {getSortIcon('chequeDate')}
+                    </div>
+                  </th>
+                  <th className="px-4 py-2 text-left cursor-pointer hover:bg-gray-200" onClick={() => requestSort('comments')}>
+                    <div className="flex items-center">
+                      COMMENTS {getSortIcon('comments')}
+                    </div>
+                  </th>
                 </tr>
               </thead>
               <tbody>
-                {tableData.map((item, index) => {
+                {sortedData.map((item, index) => {
                   // Get company ID for this row
                   const companyId = item.companyId || item.company_id || "";
                   // Check if this company is eligible for Case Split Up

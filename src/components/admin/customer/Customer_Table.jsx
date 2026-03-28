@@ -7,7 +7,7 @@ import {
   flexRender,
 } from "@tanstack/react-table";
 import { Switch, CircularProgress, Box, Typography } from "@mui/material";
-import { Pencil, Trash2} from "lucide-react";
+import { Pencil, Trash2, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import Pagination from "../../pagination/pagenation";
 
 const CustomerTable = ({
@@ -32,6 +32,17 @@ const CustomerTable = ({
       onSortChange({ id: sorting[0].id, desc: sorting[0].desc });
     }
   }, [sorting, onSortChange]);
+
+  // Custom sort icon component
+  const SortIcon = ({ column }) => {
+    const isSorted = column.getIsSorted();
+    if (!isSorted) {
+      return <ArrowUpDown size={14} className="ml-1 text-gray-400" />;
+    }
+    return isSorted === 'asc' 
+      ? <ArrowUp size={14} className="ml-1 text-[#884d51]" />
+      : <ArrowDown size={14} className="ml-1 text-[#884d51]" />;
+  };
 
   const columns = useMemo(
     () => [
@@ -70,103 +81,212 @@ const CustomerTable = ({
       },
       {
         accessorKey: "customer_id",
-        header: "Customer ID",
+        header: ({ column }) => (
+          <div 
+            className="flex items-center cursor-pointer hover:text-gray-900 transition-colors"
+            onClick={() => column.toggleSorting()}
+          >
+            Customer ID
+            <SortIcon column={column} />
+          </div>
+        ),
         cell: (info) => (
           <div className="px-3 py-2 text-[16px] text-gray-700 truncate font-mono">
             {info.getValue() || "-"}
           </div>
         ),
         size: 100,
+        enableSorting: true,
       },
       {
         accessorKey: "customer_name",
-        header: "Customer Name",
+        header: ({ column }) => (
+          <div 
+            className="flex items-center cursor-pointer hover:text-gray-900 transition-colors"
+            onClick={() => column.toggleSorting()}
+          >
+            Customer Name
+            <SortIcon column={column} />
+          </div>
+        ),
         cell: (info) => (
-          <div className="px-3 py-2 text-[16px]  text-gray-700 truncate">
+          <div className="px-3 py-2 text-[16px] text-gray-700 truncate">
             {info.getValue() || "-"}
           </div>
         ),
         size: 150,
+        enableSorting: true,
       },
       {
         accessorKey: "purchase_product_type",
-        header: "Type",
+        header: ({ column }) => (
+          <div 
+            className="flex items-center cursor-pointer hover:text-gray-900 transition-colors"
+            onClick={() => column.toggleSorting()}
+          >
+            Type
+            <SortIcon column={column} />
+          </div>
+        ),
         cell: (info) => (
           <div className="px-3 py-2 text-[16px] text-gray-700 truncate">
             {info.getValue() || "-"}
           </div>
         ),
         size: 80,
+        enableSorting: true,
       },
       {
         accessorKey: "customer_email",
-        header: "Email",
+        header: ({ column }) => (
+          <div 
+            className="flex items-center cursor-pointer hover:text-gray-900 transition-colors"
+            onClick={() => column.toggleSorting()}
+          >
+            Email
+            <SortIcon column={column} />
+          </div>
+        ),
         cell: (info) => (
           <div className="px-3 py-2 text-[16px] text-gray-700 truncate">
             {info.getValue() || "-"}
           </div>
         ),
         size: 180,
+        enableSorting: true,
       },
       {
         accessorKey: "address_line1",
-        header: "House No",
+        header: ({ column }) => (
+          <div 
+            className="flex items-center cursor-pointer hover:text-gray-900 transition-colors"
+            onClick={() => column.toggleSorting()}
+          >
+            House No
+            <SortIcon column={column} />
+          </div>
+        ),
         cell: (info) => (
           <div className="px-3 py-2 text-[16px] text-gray-700 truncate">
             {info.getValue() || "-"}
           </div>
         ),
         size: 120,
+        enableSorting: true,
       },
       {
         accessorKey: "address_line2",
-        header: "Street",
+        header: ({ column }) => (
+          <div 
+            className="flex items-center cursor-pointer hover:text-gray-900 transition-colors"
+            onClick={() => column.toggleSorting()}
+          >
+            Street
+            <SortIcon column={column} />
+          </div>
+        ),
         cell: (info) => (
           <div className="px-3 py-2 text-[16px] text-gray-700 truncate">
             {info.getValue() || "-"}
           </div>
         ),
         size: 120,
+        enableSorting: true,
       },
       {
         accessorKey: "address_line3",
-        header: "Area",
+        header: ({ column }) => (
+          <div 
+            className="flex items-center cursor-pointer hover:text-gray-900 transition-colors"
+            onClick={() => column.toggleSorting()}
+          >
+            Area
+            <SortIcon column={column} />
+          </div>
+        ),
         cell: (info) => (
           <div className="px-3 py-2 text-[16px] text-gray-700 truncate">
             {info.getValue() || "-"}
           </div>
         ),
         size: 120,
+        enableSorting: true,
       },
       {
         accessorKey: "customer_city",
-        header: "City",
+        header: ({ column }) => (
+          <div 
+            className="flex items-center cursor-pointer hover:text-gray-900 transition-colors"
+            onClick={() => column.toggleSorting()}
+          >
+            City
+            <SortIcon column={column} />
+          </div>
+        ),
         cell: (info) => (
           <div className="px-3 py-2 text-[16px] text-gray-700 truncate">
             {info.getValue() || "-"}
           </div>
         ),
         size: 100,
+        enableSorting: true,
       },
       {
         accessorKey: "customer_pincode",
-        header: "Pincode",
+        header: ({ column }) => (
+          <div 
+            className="flex items-center cursor-pointer hover:text-gray-900 transition-colors"
+            onClick={() => column.toggleSorting()}
+          >
+            Pincode
+            <SortIcon column={column} />
+          </div>
+        ),
         cell: (info) => (
           <div className="px-3 py-2 text-[16px] text-gray-700 font-mono truncate">
             {info.getValue() || "-"}
           </div>
         ),
         size: 80,
+        enableSorting: true,
+      },
+      {
+        accessorKey: "route_name",
+        header: ({ column }) => (
+          <div 
+            className="flex items-center cursor-pointer hover:text-gray-900 transition-colors"
+            onClick={() => column.toggleSorting()}
+          >
+            Route
+            <SortIcon column={column} />
+          </div>
+        ),
+        cell: (info) => (
+          <div className="px-3 py-2 text-[16px] text-gray-700 truncate">
+            {info.getValue() || "-"}
+          </div>
+        ),
+        size: 120,
+        enableSorting: true,
       },
       {
         accessorKey: "GSTIN",
-        header: "GST IN",
+        header: ({ column }) => (
+          <div 
+            className="flex items-center cursor-pointer hover:text-gray-900 transition-colors"
+            onClick={() => column.toggleSorting()}
+          >
+            GST IN
+            <SortIcon column={column} />
+          </div>
+        ),
         cell: (info) => (
           <div className="px-3 py-2 text-[16px] text-gray-700 truncate font-mono">
             {info.getValue() || "-"}
           </div>
         ),
         size: 120,
+        enableSorting: true,
       },
       {
         accessorKey: "customer_status",
@@ -254,8 +374,8 @@ const CustomerTable = ({
     <div className="bg-white rounded-lg border border-gray-200 flex flex-col h-full">
 
       {/* TABLE SCROLL ONLY */}
-      <div className="flex-1 relative min-h-[700px] scrollbar-hide">
-        <div className="overflow-auto max-h-[700px] scrollbar-hide">
+      <div className="flex-1 relative min-h-[700px] ">
+        <div className="overflow-auto max-h-[700px] ">
 
           {loading ? (
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
@@ -279,9 +399,13 @@ const CustomerTable = ({
                           }}
                           className="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider border-b border-gray-200"
                         >
-                          {flexRender(
-                            header.column.columnDef.header,
-                            header.getContext()
+                          {header.isPlaceholder ? null : (
+                            <div className="flex items-center">
+                              {flexRender(
+                                header.column.columnDef.header,
+                                header.getContext()
+                              )}
+                            </div>
                           )}
                         </th>
                       ))}

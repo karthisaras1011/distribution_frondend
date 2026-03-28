@@ -28,6 +28,7 @@ const AdminRoutes = () => {
         <Route path="cheque-pending" element={<AdminPages.ChequePending />} />
         <Route path="desig" element={<AdminPages.Desigination />} />
         <Route path="vihcle" element={<AdminPages.movement />} />
+        <Route path="faq" element={<AdminPages.FAQ />} />
 
       
       </Route>

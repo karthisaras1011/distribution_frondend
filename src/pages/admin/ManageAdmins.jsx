@@ -320,7 +320,7 @@ const ManageAdmins = () => {
         </div>
       ) : (
         <div className="relative rounded-xl shadow-sm border border-gray-200 mt-4">
-          <div className="overflow-x-auto overflow-y-auto max-h-[600px] scrollbar-hide ">
+          <div className="overflow-x-auto overflow-y-auto max-h-[600px]  ">
             <table className="w-full border-collapse">
               <thead className="bg-gray-100 text-gray-600 uppercase text-xs sticky top-0 z-10">
                 <tr>

@@ -307,18 +307,18 @@ export default function LrUpdateReport() {
     }
   };
 
-  // ✅ கம்பெனி பட்டன் க்ளிக் ஹேண்ட்லர் - Updated
+  
   const handleCompanyFilterClick = (filterName) => {
     if (selectedCompanyFilter === filterName) {
-      // அதே கம்பெனியை மீண்டும் க்ளிக் செய்தால், ஃபில்டரை நீக்கு
+     
       setSelectedCompanyFilter(null);
     } else {
-      // புதிய கம்பெனியைத் தேர்ந்தெடு
+    
       console.log("FiltNAme: ",selectedCompanyFilter);
       
       setSelectedCompanyFilter(filterName);
     }
-    setCurrentPage(1); // பக்கம் 1-க்கு திரும்பு
+    setCurrentPage(1); 
   };
 
   // Get display name for the filter
@@ -759,7 +759,7 @@ export default function LrUpdateReport() {
                     selectedCompanyFilter === 'Vedistry Pvt Ltd' 
                       ? 'bg-[#6a1a13] text-white' 
                       : 'bg-[#842626] hover:bg-amber-950 text-white'
-                  }`}
+                }`}
                 >
                   Vedistry Only
                 </button>
@@ -902,7 +902,7 @@ export default function LrUpdateReport() {
         </div>
       )}
 
-      {/* Table */}
+      {/* Table - with onRefreshData prop added */}
       <div className="bg-gray-50 rounded-xl shadow-inner mt-4 overflow-x-auto">
         <LrUpdateable
           tableData={tableData}
@@ -920,6 +920,7 @@ export default function LrUpdateReport() {
           onSelectItem={handleSelectItem}
           auth={auth}
           onSaveCaseSplitUp={handleCaseSplitUpSave}
+          onRefreshData={() => fetchData(currentPage)}  // ✅ ADDED THIS LINE - passes refresh function
         />
       </div>
     </div>

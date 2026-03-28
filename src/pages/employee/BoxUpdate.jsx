@@ -23,64 +23,62 @@ const BoxUpdate = () => {
   const navigate = useNavigate();
 
   // ✅ Fetch Data from API
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        setError("");
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      setError("");
 
-        const params = {
-          company_id: auth?.company?.id,
-          page: currentPage,
-          limit: recordsPerPage,
-          search: search || undefined,
-        };
+      const params = {
+        company_id: auth?.company?.id,
+        page: currentPage,
+        limit: recordsPerPage,
+        search: search || undefined,
+      };
 
-        console.log("📦 Fetching box data with params:", params);
+      console.log("📦 Fetching box data with params:", params);
 
-        const res = await getBox(params);
-        console.log("✅ Backend Response:", res);
+      const res = await getBox(params);
+      console.log("✅ Backend Response:", res);
 
-        if (res?.data?.success) {
-          const responseData = res.data.data || [];
-          setData(responseData);
-          
-          // ✅ CORRECTED: Get pagination data from res.data.pagination
-          if (res.data.pagination) {
-            const { totalItems, totalPages: apiTotalPages } = res.data.pagination;
-            setTotalRecords(totalItems || 0);
-            setTotalPages(apiTotalPages || 0);
-            console.log("📊 Pagination Data:", {
-              totalItems,
-              totalPages: apiTotalPages,
-              currentPage: res.data.pagination.currentPage
-            });
-          } else {
-            // Fallback if pagination is not in the expected format
-            setTotalRecords(responseData.length);
-            setTotalPages(1);
-          }
-
-          if (responseData.length === 0) {
-            setError("No data found for your company");
-          }
+      if (res?.data?.success) {
+        const responseData = res.data.data || [];
+        setData(responseData);
+        
+        if (res.data.pagination) {
+          const { totalItems, totalPages: apiTotalPages } = res.data.pagination;
+          setTotalRecords(totalItems || 0);
+          setTotalPages(apiTotalPages || 0);
+          console.log("📊 Pagination Data:", {
+            totalItems,
+            totalPages: apiTotalPages,
+            currentPage: res.data.pagination.currentPage
+          });
         } else {
-          setData([]);
-          setTotalRecords(0);
-          setTotalPages(0);
-          setError(res?.data?.message || "Failed to fetch data");
+          setTotalRecords(responseData.length);
+          setTotalPages(1);
         }
-      } catch (err) {
-        console.error("❌ Error fetching box data:", err);
-        setError("Failed to load data. Please try again.");
+
+        if (responseData.length === 0) {
+          setError("No data found for your company");
+        }
+      } else {
         setData([]);
         setTotalRecords(0);
         setTotalPages(0);
-      } finally {
-        setLoading(false);
+        setError(res?.data?.message || "Failed to fetch data");
       }
-    };
+    } catch (err) {
+      console.error("❌ Error fetching box data:", err);
+      setError("Failed to load data. Please try again.");
+      setData([]);
+      setTotalRecords(0);
+      setTotalPages(0);
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  useEffect(() => {
     if (auth?.company?.id) {
       fetchData();
     } else {
@@ -107,9 +105,12 @@ const BoxUpdate = () => {
     setIsModalOpen(true);
   };
 
-  const handleModalClose = () => {
+  const handleModalClose = (shouldRefresh = false) => {
     setIsModalOpen(false);
     setSelectedItem(null);
+    if (shouldRefresh) {
+      fetchData(); // Refresh data after successful update
+    }
   };
 
   // ✅ Handle EBS Edit
@@ -240,20 +241,7 @@ const BoxUpdate = () => {
         });
 
         // Refresh data after delete
-        const params = {
-          company_id: auth?.company?.id,
-          page: currentPage,
-          limit: recordsPerPage,
-          search: search || undefined,
-        };
-        const updatedRes = await getBox(params);
-        if (updatedRes?.data?.success) {
-          setData(updatedRes.data.data || []);
-          if (updatedRes.data.pagination) {
-            setTotalRecords(updatedRes.data.pagination.totalItems || 0);
-            setTotalPages(updatedRes.data.pagination.totalPages || 0);
-          }
-        }
+        fetchData();
       } else {
         await Swal.fire({
           title: "Failed",
@@ -346,23 +334,23 @@ const BoxUpdate = () => {
           <table className="min-w-full bg-white">
             <thead className="sticky top-0 z-0 bg-gray-100 text-gray-600 uppercase text-xs text-center rounded">
               <tr>
-                <th className="p-2  font-medium  ">SNO</th>
-                <th className="p-2  font-medium  ">CREATED</th>
-                <th className="p-2  font-medium  ">COMPANY NAME</th>
-                <th className="p-2  font-medium  ">COURIER NO</th>
-                <th className="p-2  font-medium  ">CUSTOMER NAME</th>
-                <th className="p-2  font-medium  ">NO OF BOXES</th>
-                <th className="p-2  font-medium  ">BOX NO</th>
-                <th className="p-2  font-medium  ">ACTIONS</th>
-                <th className="p-2 font-medium  ">EBS</th>
-                <th className="p-2 font-medium  ">SALABLE</th>
+                <th className="p-2 font-medium">SNO</th>
+                <th className="p-2 font-medium">CREATED</th>
+                <th className="p-2 font-medium">COMPANY NAME</th>
+                <th className="p-2 font-medium">COURIER NO</th>
+                <th className="p-2 font-medium">CUSTOMER NAME</th>
+                <th className="p-2 font-medium">NO OF BOXES</th>
+                <th className="p-2 font-medium">BOX NO</th>
+                <th className="p-2 font-medium">ACTIONS</th>
+                <th className="p-2 font-medium">EBS</th>
+                <th className="p-2 font-medium">SALABLE</th>
               </tr>
             </thead>
 
             <tbody>
               {data.length > 0 ? (
                 data.map((item, index) => (
-                  <tr key={index} className="hover:bg-gray-50 border-b text-center border-gray-100 last:border-b-0">
+                  <tr key={item.return_id || index} className="hover:bg-gray-50 border-b text-center border-gray-100 last:border-b-0">
                     <td className="p-3 text-[16px]">
                       {(currentPage - 1) * recordsPerPage + index + 1}
                     </td>
@@ -474,7 +462,10 @@ const BoxUpdate = () => {
 
       {/* Modal */}
       {isModalOpen && (
-        <ActionBoxUpdate item={selectedItem} onClose={handleModalClose} />
+        <ActionBoxUpdate 
+          item={selectedItem} 
+          onClose={handleModalClose}
+        />
       )}
     </div>
   );

@@ -486,7 +486,7 @@ const Return = () => {
 
       {/* Table */}
       <div className="relative rounded-xl shadow-sm border border-gray-200 mt-4">
-        <div className="overflow-auto max-h-[700px] scrollbar-hide ">
+        <div className="overflow-auto max-h-[700px]  ">
           <table className="min-w-max text-sm text-gray-700 border-collapse">
             <thead className="bg-gray-100 text-gray-600 uppercase text-xs sticky top-0 z-10">
               <tr>

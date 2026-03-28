@@ -9,7 +9,8 @@ const InwardCoverModal = ({ isOpen, onClose, onSave, data, loading = false, comp
     customerCity: "",
     courierNo: "",
     transportName: "",
-    comments: ""
+    comments: "",
+    createdDate: ""  // Added createdDate field - EDITABLE
   });
 
   const [showCompanyDropdown, setShowCompanyDropdown] = useState(false);
@@ -26,7 +27,8 @@ const InwardCoverModal = ({ isOpen, onClose, onSave, data, loading = false, comp
         customerCity: data.customerCity || data.city || data.customer_city || "",
         courierNo: data.courierNo || data.courier_no || data.tracking_number || "",
         transportName: data.transportName || data.transport_name || data.courier_name || "",
-        comments: data.comment || data.remarks || data.notes || ""
+        comments: data.comment || data.remarks || data.notes || "",
+        createdDate: data.created_date || data.created || data.date_created || ""  // Initialize createdDate
       });
       setCompanySearch(data.companyName || data.company_name || data.company || "");
     }
@@ -98,7 +100,8 @@ const InwardCoverModal = ({ isOpen, onClose, onSave, data, loading = false, comp
       customerCity: "",
       courierNo: "",
       transportName: "",
-      comments: ""
+      comments: "",
+      createdDate: ""  // Reset createdDate on close
     });
     setCompanySearch("");
     setShowCompanyDropdown(false);
@@ -185,6 +188,21 @@ const InwardCoverModal = ({ isOpen, onClose, onSave, data, loading = false, comp
                 name="companyId"
                 value={formData.companyId}
                 onChange={handleChange}
+              />
+            </div>
+
+            {/* Created Date - EDITABLE Date Field */}
+            <div className="md:col-span-2">
+              <label className="text-sm font-semibold text-gray-600 mb-2 block">
+                CREATED DATE
+              </label>
+              <input
+                type="date"
+                name="createdDate"
+                value={formData.createdDate}
+                onChange={handleChange}
+                className="w-full border border-gray-300 rounded-lg px-4 py-3 bg-white outline-none focus:ring-2 focus:ring-rose-200 focus:border-rose-300 transition-colors"
+                placeholder="Select created date"
               />
             </div>
 

@@ -41,10 +41,38 @@ function parseExcelDate(dateStr) {
 }
 
 function getExcelText(cell) {
+  console.log(cell, 'celll');
 
-  return typeof cell === "object"
-    ? XLSX.SSF.format("yyyy-mm-dd", cell)  // same as Excel format
-    : cell;
+  // 1. Excel date (number format)
+  if (typeof cell === "number") {
+    return XLSX.SSF.format("yyyy-mm-dd", cell);
+  }
+
+  // 2. String format handle
+  if (typeof cell === "string") {
+    // normalize ., / → -
+    const normalized = cell.replace(/[./]/g, "-");
+
+    if (normalized.includes("-")) {
+      const parts = normalized.split("-");
+
+      // DD-MM-YYYY
+      if (parts.length === 3 && parts[0].length === 2) {
+        const [dd, mm, yyyy] = parts;
+        return `${yyyy}-${mm}-${dd}`;
+      }
+
+      // YYYY-MM-DD (already correct)
+      if (parts.length === 3 && parts[0].length === 4) {
+        return normalized;
+      }
+    }
+
+    return normalized;
+  }
+
+  // 3. fallback
+  return cell;
 }
 
 const companyConfigs = {

@@ -19,3 +19,4 @@ export {default as Routing} from './Routing';
 export {default as ChequePending} from './ChequePending';
 export {default as Desigination} from './Desigination';
 export {default as movement} from './movement'
+export {default as FAQ} from './FAQ'

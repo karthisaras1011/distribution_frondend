@@ -36,7 +36,7 @@ const Customer = () => {
   const [debouncedSearch] = useDebounce(searchTerm, 500);
   const [statusFilter, setStatusFilter] = useState("all");
   const [productTypeFilter, setProductTypeFilter] = useState("");
-  const [sortBy, setSortBy] = useState({ id: "customer_id", desc: false });
+  const [sortBy, setSortBy] = useState({ id: "no_of_data", desc: true });
   const [isToggling, setIsToggling] = useState({});
 
   const fetchData = useCallback(async () => {

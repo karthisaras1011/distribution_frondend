@@ -178,7 +178,8 @@ console.log("Sales Vanten: ",response);
     console.error("Error downloading Excel:", error);
     Swal.fire("Error!", "Failed to download Excel file.", "error");
   }
-}, [auth.company, filters]);  const handleRefresh = useCallback(() => {
+}, [auth.company, filters]);  
+const handleRefresh = useCallback(() => {
     fetchData(pagination.page);
   }, [fetchData, pagination.page]);
 

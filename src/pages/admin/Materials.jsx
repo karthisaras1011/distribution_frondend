@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Search } from "lucide-react";
+import { Search, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { HiArrowDownTray, HiArrowUpTray } from "react-icons/hi2";
 import Pagination from "../../components/pagination/pagenation";
 import {
@@ -18,11 +18,18 @@ const Materials = () => {
   const [file, setFile] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [materials, setMaterials] = useState([]);
+  const [sortedMaterials, setSortedMaterials] = useState([]);
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [exportingAll, setExportingAll] = useState(false);
   const [exportingCompany, setExportingCompany] = useState(false);
   const [error, setError] = useState("");
+
+  // Sorting state
+  const [sortConfig, setSortConfig] = useState({
+    key: "",
+    direction: "asc"
+  });
 
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
@@ -34,6 +41,73 @@ const Materials = () => {
     fetchCompanies(); // ✅ Load companies in dropdown
     fetchMaterials(searchTerm);
   }, [currentPage, searchTerm]);
+
+  // Apply sorting when materials or sortConfig changes
+  useEffect(() => {
+    if (materials.length > 0) {
+      const sorted = [...materials].sort((a, b) => {
+        if (!sortConfig.key) return 0;
+
+        let aValue = getValueForSorting(a, sortConfig.key);
+        let bValue = getValueForSorting(b, sortConfig.key);
+
+        // Handle undefined or null values
+        if (aValue === undefined || aValue === null) aValue = '';
+        if (bValue === undefined || bValue === null) bValue = '';
+
+        // Compare values
+        if (aValue < bValue) {
+          return sortConfig.direction === 'asc' ? -1 : 1;
+        }
+        if (aValue > bValue) {
+          return sortConfig.direction === 'asc' ? 1 : -1;
+        }
+        return 0;
+      });
+      setSortedMaterials(sorted);
+    } else {
+      setSortedMaterials([]);
+    }
+  }, [materials, sortConfig]);
+
+  // Helper function to get value for sorting based on column key
+  const getValueForSorting = (item, key) => {
+    switch(key) {
+      case 'material':
+        return item.material || '';
+      case 'company_name':
+        return item.company_name || '';
+      case 'description':
+        return item.description || '';
+      case 'batch_no':
+        return item.batch_no || '';
+      case 'expiry_date':
+        return item.expiry_date || '';
+      case 'created_date':
+        return item.created_date || '';
+      default:
+        return '';
+    }
+  };
+
+  // Handle sort request
+  const requestSort = (key) => {
+    let direction = 'asc';
+    if (sortConfig.key === key && sortConfig.direction === 'asc') {
+      direction = 'desc';
+    }
+    setSortConfig({ key, direction });
+  };
+
+  // Get sort icon for header
+  const getSortIcon = (key) => {
+    if (sortConfig.key !== key) {
+      return <ArrowUpDown size={14} className="ml-1 inline-block" />;
+    }
+    return sortConfig.direction === 'asc' 
+      ? <ArrowUp size={14} className="ml-1 inline-block" /> 
+      : <ArrowDown size={14} className="ml-1 inline-block" />;
+  };
 
   // ✅ Clear company selection initially
   useEffect(() => {
@@ -80,6 +154,7 @@ const Materials = () => {
 
       if (response.success) {
         setMaterials(Array.isArray(response.data) ? response.data : []);
+        setSortedMaterials(Array.isArray(response.data) ? response.data : []); // Initialize sorted with original data
         setTotalPages(response.totalPages || 0);
         setTotalRecords(response.totalRecords || 0);
 
@@ -91,6 +166,7 @@ const Materials = () => {
       setError("Failed to fetch materials");
       console.error("Error fetching materials:", err);
       setMaterials([]);
+      setSortedMaterials([]);
     } finally {
       setLoading(false);
     }
@@ -394,23 +470,65 @@ const Materials = () => {
         ) : (
           <>
           <div className="relative rounded-xl shadow-sm border border-gray-200 mt-4">
-            <div className="overflow-x-auto overflow-y-auto max-h-[600px] scrollbar-hide">
+            <div className="overflow-x-auto overflow-y-auto max-h-[600px] ">
             <table className="w-full border-collapse">
               <thead className="bg-gray-100 text-gray-600 uppercase text-xs sticky top-0 z-10" >
                 <tr>
-                  <th className=" p-3 text-left">SNO</th>
-                  <th className=" p-3 text-left">Material</th>
-                  <th className=" p-3 text-left">Company Name</th>
-                  <th className=" p-3 text-left">Description</th>
-                  <th className=" p-3 text-left">Batch No</th>
-                  <th className=" p-3 text-left">Expiry Date</th>
-                  <th className=" p-3 text-left">Created Date</th>
+                  <th className="p-3 text-left">SNO</th>
+                  <th 
+                    className="p-3 text-left cursor-pointer hover:bg-gray-200"
+                    onClick={() => requestSort('material')}
+                  >
+                    <div className="flex items-center">
+                      Material {getSortIcon('material')}
+                    </div>
+                  </th>
+                  <th 
+                    className="p-3 text-left cursor-pointer hover:bg-gray-200"
+                    onClick={() => requestSort('company_name')}
+                  >
+                    <div className="flex items-center">
+                      Company Name {getSortIcon('company_name')}
+                    </div>
+                  </th>
+                  <th 
+                    className="p-3 text-left cursor-pointer hover:bg-gray-200"
+                    onClick={() => requestSort('description')}
+                  >
+                    <div className="flex items-center">
+                      Description {getSortIcon('description')}
+                    </div>
+                  </th>
+                  <th 
+                    className="p-3 text-left cursor-pointer hover:bg-gray-200"
+                    onClick={() => requestSort('batch_no')}
+                  >
+                    <div className="flex items-center">
+                      Batch No {getSortIcon('batch_no')}
+                    </div>
+                  </th>
+                  <th 
+                    className="p-3 text-left cursor-pointer hover:bg-gray-200"
+                    onClick={() => requestSort('expiry_date')}
+                  >
+                    <div className="flex items-center">
+                      Expiry Date {getSortIcon('expiry_date')}
+                    </div>
+                  </th>
+                  <th 
+                    className="p-3 text-left cursor-pointer hover:bg-gray-200"
+                    onClick={() => requestSort('created_date')}
+                  >
+                    <div className="flex items-center">
+                      Created Date {getSortIcon('created_date')}
+                    </div>
+                  </th>
                 </tr>
               </thead>
 
               <tbody>
-                {materials.length > 0 ? (
-                  materials.map((mat, index) => (
+                {sortedMaterials.length > 0 ? (
+                  sortedMaterials.map((mat, index) => (
                     <tr
                       key={getMaterialKey(mat, index)}
                       className="hover:bg-gray-50 text-gray-700  cursor-pointer"

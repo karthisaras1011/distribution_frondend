@@ -188,17 +188,15 @@ function ExcelUpload({ user, onUploadComplete }) {
   const handleConfirm = async () => {
     try {
       const countMap = data.reduce((acc, curr) => {
-  const key = `${curr.invoice_no}_${curr.invoice_date}_${curr.customer_code}`;
-  acc[key] = (acc[key] || 0) + 1;
-  return acc;
-}, {});
+        const key = `${curr.invoice_no}_${curr.invoice_date}_${curr.customer_code}`;
+        acc[key] = (acc[key] || 0) + 1;
+        return acc;
+      }, {});
 
-const filteredData = data.filter(item => {
-  const key = `${item.invoice_no}_${item.invoice_date}_${item.customer_code}`;
-  return countMap[key] === 1;
-});
-
-      console.log(filteredData,'filter');
+      const filteredData = data.filter((item) => {
+        const key = `${item.invoice_no}_${item.invoice_date}_${item.customer_code}`;
+        return countMap[key] === 1;
+      });
       
       const response = await AddSales(filteredData, user);
       console.log("Upload Response:", response);
@@ -413,8 +411,8 @@ const filteredData = data.filter(item => {
                             status === "inserted"
                               ? "bg-green-50 hover:bg-green-100"
                               : status === "failed"
-                              ? "bg-red-50 hover:bg-red-100"
-                              : "hover:bg-gray-50"
+                                ? "bg-red-50 hover:bg-red-100"
+                                : "hover:bg-gray-50"
                           }
                         >
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">

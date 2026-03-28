@@ -27,12 +27,29 @@ export const getLRData = (params = {}) => {
   return lr.get('/get/lr', { params });
 };
 
-export const currentExport = (params)=>{
-     const queryString = new URLSearchParams(params).toString();
+export const currentExport = (params) => {
+  console.log("na poren", params);
+  
+  // Map frontend parameter names to backend expected names
+  const backendParams = {
+    page: params.page,
+    limit: params.limit,
+    companyId: params.company_id, // Map company_id → companyId
+    startDate: params.start_date, // Map start_date → startDate
+    endDate: params.end_date,     // Map end_date → endDate
+    search: params.search || params.lr_no || params.courier_no || params.invoice_no || params.cheque_no || params.customer_name,
+  };
+  
+  // Remove undefined values
+  Object.keys(backendParams).forEach(key => {
+    if (backendParams[key] === undefined || backendParams[key] === '') {
+      delete backendParams[key];
+    }
+  });
+  
+  const queryString = new URLSearchParams(backendParams).toString();
   return `${API_CONFIG.BASE_URL}/admin/lrupdate/current/export?${queryString}`;
-
 }
-
 export const exportAll = (params)=>{
      const queryString = new URLSearchParams(params).toString();
   return `${API_CONFIG.BASE_URL}/admin/lrupdate/full/export?${queryString}`;

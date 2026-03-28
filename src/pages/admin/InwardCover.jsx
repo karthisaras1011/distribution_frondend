@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Icon } from "@iconify/react";
 import { getCustomers, getCompanies } from "../../service/admin/customerApi";
-import { Pencil, Trash2 } from "lucide-react";
+import { Pencil, Trash2, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import Pagination from "../../components/pagination/pagenation";
 import {
   getInward,
@@ -27,13 +27,11 @@ const InwardCover = () => {
   const [companies, setCompanies] = useState([]);
 
   // Customer search state
-  // const [customerSearch, setCustomerSearch] = useState("");
   const [filteredCustomers, setFilteredCustomers] = useState([]);
   const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
   const [loadingCustomers, setLoadingCustomers] = useState(false);
 
   // Company search state
-  // const [companySearch, setCompanySearch] = useState("");
   const [filteredCompanies, setFilteredCompanies] = useState([]);
   const [showCompanyDropdown, setShowCompanyDropdown] = useState(false);
   const [loadingCompanies, setLoadingCompanies] = useState(false);
@@ -47,6 +45,12 @@ const InwardCover = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalRecords, setTotalRecords] = useState(0);
+
+  // Sorting state
+  const [sortConfig, setSortConfig] = useState({
+    key: null,
+    direction: 'asc'
+  });
 
   // Export state
   const [exporting, setExporting] = useState(false);
@@ -103,7 +107,6 @@ const InwardCover = () => {
   // 🔍 Handle customer search input change
   const handleCustomerSearchChange = (e) => {
     const value = e.target.value;
-    // setCustomerSearch(value);
     setForm((prev) => ({ ...prev, customerName: value }));
     setShowCustomerDropdown(true);
 
@@ -131,7 +134,6 @@ const InwardCover = () => {
   // 🔍 Handle company search input change
   const handleCompanySearchChange = (e) => {
     const value = e.target.value;
-    // setCompanySearch(value);
     setForm((prev) => ({ ...prev, companyName: value }));
     setShowCompanyDropdown(true);
 
@@ -159,7 +161,6 @@ const InwardCover = () => {
   // ✅ Handle customer selection
   const handleCustomerSelect = (customer) => {
     const customerName = customer.name || customer.customer_name || "";
-    // setCustomerSearch(customerName);
     setForm((prev) => ({
       ...prev,
       customerName: customerName,
@@ -175,7 +176,6 @@ const InwardCover = () => {
         : company.name || company.company_name || "";
     const companyId = company.id || company.company_id || "";
 
-    // setCompanySearch(companyName);
     setForm((prev) => ({
       ...prev,
       companyName: companyName,
@@ -190,9 +190,61 @@ const InwardCover = () => {
     setForm((prev) => ({ ...prev, [name]: value }));
   };
 
+  // Handle sorting
+  const handleSort = (key) => {
+    let direction = 'asc';
+    if (sortConfig.key === key && sortConfig.direction === 'asc') {
+      direction = 'desc';
+    }
+    setSortConfig({ key, direction });
+
+    // Sort the table data
+    const sortedData = [...tableData].sort((a, b) => {
+      let aValue = getNestedValue(a, key);
+      let bValue = getNestedValue(b, key);
+
+      // Handle undefined or null values
+      if (aValue === null || aValue === undefined) aValue = '';
+      if (bValue === null || bValue === undefined) bValue = '';
+
+      // Convert to string for comparison if not number
+      if (typeof aValue !== 'number' || typeof bValue !== 'number') {
+        aValue = String(aValue).toLowerCase();
+        bValue = String(bValue).toLowerCase();
+      }
+
+      if (direction === 'asc') {
+        return aValue > bValue ? 1 : -1;
+      } else {
+        return aValue < bValue ? 1 : -1;
+      }
+    });
+
+    setTableData(sortedData);
+  };
+
+  // Helper function to get nested object values (e.g., 'customer.name')
+  const getNestedValue = (obj, path) => {
+    return path.split('.').reduce((current, key) => {
+      return current && current[key] !== undefined ? current[key] : null;
+    }, obj);
+  };
+
+  // Get sort icon for header
+  const getSortIcon = (key) => {
+    if (sortConfig.key !== key) {
+      return <ArrowUpDown size={14} className="ml-1 text-gray-400" />;
+    }
+    return sortConfig.direction === 'asc' 
+      ? <ArrowUp size={14} className="ml-1 text-[#842626]" />
+      : <ArrowDown size={14} className="ml-1 text-[#842626]" />;
+  };
+
   // Handle page change
   const handlePageChange = (page) => {
     setCurrentPage(page);
+    // Reset sorting when changing page
+    setSortConfig({ key: null, direction: 'asc' });
     // Refresh data with new page
     handleSubmit(null, page);
   };
@@ -221,6 +273,8 @@ const InwardCover = () => {
     setLoadingTable(true);
     setShowTable(false);
     setCurrentPage(page);
+    // Reset sorting when fetching new data
+    setSortConfig({ key: null, direction: 'asc' });
 
     try {
       // Create params object and filter out empty values
@@ -312,6 +366,7 @@ const InwardCover = () => {
         courier_no: updatedData.courierNo,
         transport_name: updatedData.transportName,
         comments: updatedData.comments,
+        updated_date: updatedData.createdDate
       };
 
       console.log("Update payload:", updatePayload);
@@ -757,7 +812,7 @@ const InwardCover = () => {
               {/* Table with fixed header and scrollable body */}
               <div className="max-h-[calc(100vh-350px)] overflow-y-auto"> {/* Adjust height dynamically */}
                 <table className="min-w-full border-collapse text-gray-700">
-                  {/* Fixed Header */}
+                  {/* Fixed Header with Sort Icons */}
                   <thead className="sticky top-0 z-20 bg-gray-50">
                     <tr>
                       <th className="border border-gray-200 px-4 py-3 text-left text-xs font-semibold text-gray-500 sticky left-0 bg-gray-50 z-30 min-w-[80px]">
@@ -766,26 +821,68 @@ const InwardCover = () => {
                       <th className="border border-gray-200 px-4 py-3 text-left text-xs font-semibold text-gray-500 sticky left-[80px] bg-gray-50 z-30 min-w-[100px]">
                         ACTIONS
                       </th>
-                      <th className="border border-gray-200 px-4 py-3 text-left text-xs font-semibold text-gray-500 min-w-[120px]">
-                        CREATED
+                      <th 
+                        className="border border-gray-200 px-4 py-3 text-left text-xs font-semibold text-gray-500 min-w-[120px] cursor-pointer hover:bg-gray-100 transition-colors"
+                        onClick={() => handleSort('created')}
+                      >
+                        <div className="flex items-center">
+                          CREATED
+                          {getSortIcon('created')}
+                        </div>
                       </th>
-                      <th className="border border-gray-200 px-4 py-3 text-left text-xs font-semibold text-gray-500 min-w-[180px]">
-                        COMPANY NAME
+                      <th 
+                        className="border border-gray-200 px-4 py-3 text-left text-xs font-semibold text-gray-500 min-w-[180px] cursor-pointer hover:bg-gray-100 transition-colors"
+                        onClick={() => handleSort('companyName')}
+                      >
+                        <div className="flex items-center">
+                          COMPANY NAME
+                          {getSortIcon('companyName')}
+                        </div>
                       </th>
-                      <th className="border border-gray-200 px-4 py-3 text-left text-xs font-semibold text-gray-500 min-w-[180px]">
-                        CUSTOMER NAME
+                      <th 
+                        className="border border-gray-200 px-4 py-3 text-left text-xs font-semibold text-gray-500 min-w-[180px] cursor-pointer hover:bg-gray-100 transition-colors"
+                        onClick={() => handleSort('customerName')}
+                      >
+                        <div className="flex items-center">
+                          CUSTOMER NAME
+                          {getSortIcon('customerName')}
+                        </div>
                       </th>
-                      <th className="border border-gray-200 px-4 py-3 text-left text-xs font-semibold text-gray-500 min-w-[150px]">
-                        CUSTOMER CITY
+                      <th 
+                        className="border border-gray-200 px-4 py-3 text-left text-xs font-semibold text-gray-500 min-w-[150px] cursor-pointer hover:bg-gray-100 transition-colors"
+                        onClick={() => handleSort('customerCity')}
+                      >
+                        <div className="flex items-center">
+                          CUSTOMER CITY
+                          {getSortIcon('customerCity')}
+                        </div>
                       </th>
-                      <th className="border border-gray-200 px-4 py-3 text-left text-xs font-semibold text-gray-500 min-w-[150px]">
-                        COURIER NO
+                      <th 
+                        className="border border-gray-200 px-4 py-3 text-left text-xs font-semibold text-gray-500 min-w-[150px] cursor-pointer hover:bg-gray-100 transition-colors"
+                        onClick={() => handleSort('courierNo')}
+                      >
+                        <div className="flex items-center">
+                          COURIER NO
+                          {getSortIcon('courierNo')}
+                        </div>
                       </th>
-                      <th className="border border-gray-200 px-4 py-3 text-left text-xs font-semibold text-gray-500 min-w-[180px]">
-                        TRANSPORT NAME
+                      <th 
+                        className="border border-gray-200 px-4 py-3 text-left text-xs font-semibold text-gray-500 min-w-[180px] cursor-pointer hover:bg-gray-100 transition-colors"
+                        onClick={() => handleSort('transportName')}
+                      >
+                        <div className="flex items-center">
+                          TRANSPORT NAME
+                          {getSortIcon('transportName')}
+                        </div>
                       </th>
-                      <th className="border border-gray-200 px-4 py-3 text-left text-xs font-semibold text-gray-500 min-w-[200px]">
-                        COMMENTS
+                      <th 
+                        className="border border-gray-200 px-4 py-3 text-left text-xs font-semibold text-gray-500 min-w-[200px] cursor-pointer hover:bg-gray-100 transition-colors"
+                        onClick={() => handleSort('comment')}
+                      >
+                        <div className="flex items-center">
+                          COMMENTS
+                          {getSortIcon('comment')}
+                        </div>
                       </th>
                     </tr>
                   </thead>

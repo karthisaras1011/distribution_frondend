@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { getEmployees, addEmployee, updateEmployee, deleteEmployee, statusEmployee, shipmentStatuss } from '../../service/admin/manageEmployee';
-import { Pencil, Trash2 } from "lucide-react";
+import { Pencil, Trash2, Search, X } from "lucide-react";
 import Swal from "sweetalert2";
 import EmployeeModal from '../../models/admin/manageEmployee/EmployeeModal';
 
@@ -10,6 +10,7 @@ const ManageEmployees = () => {
   const [error, setError] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
   const [newEmployee, setNewEmployee] = useState({
     employee_name: '',
     employee_id: '',
@@ -26,6 +27,27 @@ const ManageEmployees = () => {
   useEffect(() => {
     fetchEmployees();
   }, []);
+
+  // Filter employees using useMemo for better performance
+  const filteredEmployees = useMemo(() => {
+    if (!Array.isArray(employees)) return [];
+    
+    if (!searchTerm.trim()) {
+      return employees;
+    }
+
+    const lowercasedSearch = searchTerm.toLowerCase().trim();
+    
+    return employees.filter(employee => {
+      // Search in multiple fields
+      return (
+        (employee.employee_name && employee.employee_name.toLowerCase().includes(lowercasedSearch)) ||
+        (employee.employee_id && employee.employee_id.toLowerCase().includes(lowercasedSearch)) ||
+        (employee.employee_password && employee.employee_password.toLowerCase().includes(lowercasedSearch)) ||
+        (employee.no_of_data && employee.no_of_data.toString().includes(lowercasedSearch))
+      );
+    });
+  }, [employees, searchTerm]);
 
   const fetchEmployees = async () => {
     try {
@@ -67,6 +89,16 @@ const ManageEmployees = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Handle search input change
+  const handleSearchChange = (e) => {
+    setSearchTerm(e.target.value);
+  };
+
+  // Clear search
+  const clearSearch = () => {
+    setSearchTerm('');
   };
 
   const toggleStatus = async (employee) => {
@@ -314,8 +346,8 @@ const ManageEmployees = () => {
     }
   };
 
-  // Safe rendering - ensure employees is always an array
-  const safeEmployees = Array.isArray(employees) ? employees : [];
+  // Safe rendering - ensure filteredEmployees is always an array
+  const safeEmployees = Array.isArray(filteredEmployees) ? filteredEmployees : [];
 
   if (loading) {
     return (
@@ -357,13 +389,61 @@ const ManageEmployees = () => {
         </button>
       </div>
 
+      {/* Search Bar */}
+      <div className="mb-6">
+        <div className="relative">
+          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <Search className="h-5 w-5 text-gray-400" />
+          </div>
+          <input
+            type="text"
+            className="block w-90 pl-10 pr-10 py-2 border border-gray-300 rounded-lg focus:ring-[#6a1a12] focus:border-[#6a1a12]"
+            placeholder="Search by name, ID, ..."
+            value={searchTerm}
+            onChange={handleSearchChange}
+          />
+          {searchTerm && (
+            <button
+              onClick={clearSearch}
+              className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          )}
+        </div>
+        
+        {/* Search results info */}
+        <div className="mt-2 flex justify-between items-center">
+          <p className="text-sm text-gray-600">
+            {searchTerm ? (
+              <>
+                Found <span className="font-semibold">{safeEmployees.length}</span> {safeEmployees.length === 1 ? 'employee' : 'employees'} 
+                {searchTerm && ` matching "${searchTerm}"`}
+              </>
+            ) : (
+              <>
+                
+              </>
+            )}
+          </p>
+          {searchTerm && safeEmployees.length === 0 && (
+            <button
+              onClick={clearSearch}
+              className="text-sm text-[#6a1a12] hover:text-[#955d5d] font-medium"
+            >
+              Clear search
+            </button>
+          )}
+        </div>
+      </div>
+
       {error && (
         <div className="mb-4 bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded">
           {error}
         </div>
       )}
 
-      {safeEmployees.length === 0 ? (
+      {safeEmployees.length === 0 && !searchTerm ? (
         <div className="bg-white rounded-lg shadow p-8 text-center">
           <p className="text-gray-500">No employees found.</p>
           <button 
@@ -373,33 +453,30 @@ const ManageEmployees = () => {
             Retry
           </button>
         </div>
+      ) : safeEmployees.length === 0 && searchTerm ? (
+        <div className="bg-white rounded-lg shadow p-8 text-center">
+          <p className="text-gray-500 mb-2">No employees match your search "{searchTerm}"</p>
+          <p className="text-sm text-gray-400 mb-4">Try searching with different keywords</p>
+          <button 
+            className="bg-[#6a1a12] hover:bg-[#955d5d] text-white px-4 py-2 rounded"
+            onClick={clearSearch}
+          >
+            Clear Search
+          </button>
+        </div>
       ) : (
-        <div className="relative rounded-xl shadow-sm  mt-4 ">
-          <div className="overflow-x-auto overflow-y-auto max-h-[700px] scrollbar-hide px-2">
-            <table className="w-full border-collapse ">
+        <div className="relative rounded-xl shadow-sm mt-4">
+          <div className="overflow-x-auto overflow-y-auto max-h-[700px]  px-2">
+            <table className="w-full border-collapse">
               <thead className="bg-gray-100 text-gray-600 uppercase text-xs sticky top-0 z-10">
                 <tr>
-                  <th className="p-3 text-left">
-                    SNO
-                  </th>
-                  <th className="p-3 text-left">
-                    EMPLOYEE NAME
-                  </th>
-                  <th className="p-3 text-left">
-                    EMPLOYEE ID
-                  </th>
-                  <th className="p-3 text-left">
-                    EMPLOYEE PASSWORD
-                  </th>
-                  <th className="p-3 text-left">
-                     DISTRIBUTION ACCESS
-                  </th>
-                  <th className="p-3 text-left">
-                    SHIPMENT ACCESS
-                  </th>
-                  <th className="p-3 text-left">
-                    ACTIONS
-                  </th>
+                  <th className="p-3 text-left">SNO</th>
+                  <th className="p-3 text-left">EMPLOYEE NAME</th>
+                  <th className="p-3 text-left">EMPLOYEE ID</th>
+                  <th className="p-3 text-left">EMPLOYEE PASSWORD</th>
+                  <th className="p-3 text-left">DISTRIBUTION ACCESS</th>
+                  <th className="p-3 text-left">SHIPMENT ACCESS</th>
+                  <th className="p-3 text-left">ACTIONS</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
@@ -428,9 +505,6 @@ const ManageEmployees = () => {
                           />
                           <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-500"></div>
                         </label>
-                        <span className={`ml-2 text-sm font-medium ${employee.employee_status === 1 ? 'text-green-600' : 'text-red-600'}`}>
-                          {employee.employee_status === 1 ? '' : ''}
-                        </span>
                       </div>
                     </td>
                     <td className="px-4 py-2 border border-gray-200 text-[16px]">
@@ -444,9 +518,6 @@ const ManageEmployees = () => {
                           />
                           <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-500"></div>
                         </label>
-                        <span className={`ml-2 text-sm font-medium ${employee.shipment_status === 1 ? 'text-green-600' : 'text-red-600'}`}>
-                          {employee.shipment_status === 1 ? '' : ''}
-                        </span>
                       </div>
                     </td>
                     <td className="px-4 py-2 border border-gray-200 text-[16px]">
@@ -458,7 +529,7 @@ const ManageEmployees = () => {
                           onClick={() => handleEdit(employee)}
                         />
                         <Trash2 
-                          className="text-[#6a1a12] hover:text-red-700" 
+                          className="text-[#6a1a12] cursor-pointer hover:text-red-700" 
                           size={16} 
                           title="Delete"
                           onClick={() => handleDelete(employee)}

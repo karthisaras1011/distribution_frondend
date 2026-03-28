@@ -206,7 +206,7 @@ const Transport = () => {
         ) : (
           <>
             {/* table wrapper with vertical scroll only */}
-            <div className="overflow-y-auto max-h-[600px] scrollbar-hide">
+            <div className="overflow-y-auto max-h-[600px] ">
               {/* table-fixed so column widths are respected */}
               <table className="w-full table-fixed border-collapse ">
                

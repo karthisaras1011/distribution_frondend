@@ -57,25 +57,32 @@ const ActionBoxUpdate = ({ item, onClose }) => {
       let credits = [];
       try {
         if (item.credit_details) {
-          if (typeof item.credit_details === 'string') {
+          if (typeof item.credit_details === "string") {
             credits = JSON.parse(item.credit_details);
           } else if (Array.isArray(item.credit_details)) {
             credits = item.credit_details;
           }
         }
       } catch (error) {
-        console.error('Error parsing credit_details:', error);
+        console.error("Error parsing credit details:", error);
         credits = [];
       }
-      setExistingCredits(credits);
 
-      // Don't populate credit inputs with existing data - keep them empty for new entries
-      setCreditInputs({
-        mraNo: "",
-        creditNo: "",
-        mraDate: "",
-        creditDate: "",
-      });
+      const isValid = (val) =>
+        val !== null &&
+        val !== undefined &&
+        val !== "" &&
+        val !== "-";
+
+      const filteredCredits = credits.filter(
+        (credit) =>
+          isValid(credit.mra_no) ||
+          isValid(credit.mra_date) ||
+          isValid(credit.credit_no) ||
+          isValid(credit.credit_date)
+      );
+
+      setExistingCredits(filteredCredits);
     }
   }, [item]);
 
@@ -137,26 +144,19 @@ const ActionBoxUpdate = ({ item, onClose }) => {
     return "";
   };
 
-  // Get display text for box status
-  const getBoxStatusDisplayText = (status) => {
-    if (status === "CHEKED") return "Checked";
-    if (status === "NOT_CHEKED") return "Not Checked";
-    return "-- Select Status --";
-  };
-
   // Function to handle credit data insertion
   const handleCreditInsert = async (returnId) => {
     try {
-      // Check if we have any credit data to insert (use creditInputs state)
+      // Check if we have any credit data to insert
       const hasMraData = creditInputs.mraNo || creditInputs.mraDate;
       const hasCreditData = creditInputs.creditNo || creditInputs.creditDate;
 
       if (!hasMraData && !hasCreditData) {
         console.log("No credit data to insert");
-        return;
+        return null;
       }
 
-      // Prepare credit data from creditInputs - use YYYY-MM-DD format for backend
+      // Prepare credit data from creditInputs
       const creditData = {
         returns_id: returnId,
         mra_no: creditInputs.mraNo || "",
@@ -170,17 +170,17 @@ const ActionBoxUpdate = ({ item, onClose }) => {
       const res = await insertCredit(creditData);
 
       if (res?.data?.success) {
-        console.log("✅ Credit data inserted successfully");
+        console.log("✅ Credit data inserted successfully:", res.data);
         
-        // Clear credit input fields after successful insertion
-        setCreditInputs({
-          mraNo: "",
-          creditNo: "",
-          mraDate: "",
-          creditDate: "",
-        });
-        
-        return true;
+        // Create new credit object for UI update
+        const newCredit = {
+          mra_no: creditInputs.mraNo || "",
+          mra_date: formatDateForBackend(creditInputs.mraDate),
+          credit_no: creditInputs.creditNo || "",
+          credit_date: formatDateForBackend(creditInputs.creditDate),
+        };
+
+        return newCredit;
       } else {
         console.warn("⚠️ Credit insertion response:", res?.data);
         throw new Error(res?.data?.message || "Credit insertion failed");
@@ -210,7 +210,7 @@ const ActionBoxUpdate = ({ item, onClose }) => {
     try {
       setLoading(true);
 
-      // ✅ Format all dates for returns table update - use YYYY-MM-DD for backend
+      // Format all dates for returns table update
       const updateData = {
         return_id: item.return_id,
         box_status: getBackendBoxStatus(formData.boxStatus),
@@ -233,9 +233,23 @@ const ActionBoxUpdate = ({ item, onClose }) => {
         
         // Step 2: Insert credit data if credit fields are filled
         const hasCreditData = creditInputs.mraNo || creditInputs.creditNo || creditInputs.mraDate || creditInputs.creditDate;
+        let creditInserted = false;
         
         if (hasCreditData) {
-          await handleCreditInsert(item.return_id);
+          const newCredit = await handleCreditInsert(item.return_id);
+          if (newCredit) {
+            // Update UI with new credit
+            setExistingCredits((prev) => [...prev, newCredit]);
+            
+            // Clear credit inputs
+            setCreditInputs({
+              mraNo: "",
+              creditNo: "",
+              mraDate: "",
+              creditDate: "",
+            });
+            creditInserted = true;
+          }
         }
 
         await Swal.fire({
@@ -245,9 +259,14 @@ const ActionBoxUpdate = ({ item, onClose }) => {
             : "Box details have been successfully updated.",
           icon: "success",
           confirmButtonColor: "#2563eb",
+          timer: 2000,
+          timerProgressBar: true,
         });
+
+        onClose(true); // Refresh parent data after update
         
-        onClose(); // close modal
+        
+       
       } else {
         await Swal.fire({
           title: "Failed",
@@ -288,6 +307,11 @@ const ActionBoxUpdate = ({ item, onClose }) => {
     });
   };
 
+  // Handle closing modal
+  const handleClose = () => {
+    onClose(false); // Don't refresh when manually closing
+  };
+
   return (
     <div className="fixed inset-0 bg-black/50 bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
@@ -297,7 +321,7 @@ const ActionBoxUpdate = ({ item, onClose }) => {
             UPDATE DETAILS - {item?.box_no || item?.boxNo || "N/A"}
           </h2>
           <button
-            onClick={onClose}
+            onClick={handleClose}
             className="text-gray-500 hover:text-gray-700 transition-colors duration-200"
             disabled={loading}
           >
@@ -316,6 +340,7 @@ const ActionBoxUpdate = ({ item, onClose }) => {
                   : "border-transparent text-gray-500 hover:text-gray-700"
               }`}
               onClick={() => setActiveTab("boxDetails")}
+              disabled={loading}
             >
               BOX UPDATE
             </button>
@@ -327,8 +352,9 @@ const ActionBoxUpdate = ({ item, onClose }) => {
                   : "border-transparent text-gray-500 hover:text-gray-700"
               }`}
               onClick={() => setActiveTab("creditDetails")}
+              disabled={loading}
             >
-              CREDIT UPDATE ({existingCredits.length})
+              CREDIT UPDATE 
             </button>
           </div>
         </div>
@@ -342,7 +368,7 @@ const ActionBoxUpdate = ({ item, onClose }) => {
                 {/* Box Details Table */}
                 <div className="border rounded-lg overflow-hidden">
                   <table className="w-full text-sm text-center">
-                    <thead className=" text-gray-500">
+                    <thead className="text-gray-500">
                       <tr>
                         <th className="border p-2 font-semibold">BOX NO</th>
                         <th className="border p-2 font-semibold">COURIER NO</th>
@@ -360,7 +386,7 @@ const ActionBoxUpdate = ({ item, onClose }) => {
                 </div>
 
                 {/* Box Status Section */}
-                <div className=" flex gap-6 flex-wrap">
+                <div className="flex gap-6 flex-wrap">
                   <div className="flex-1 min-w-[200px]">
                     <label className="block text-sm font-medium text-gray-500 mb-2">
                       BOX STATUS
@@ -369,7 +395,7 @@ const ActionBoxUpdate = ({ item, onClose }) => {
                       name="boxStatus"
                       value={formData.boxStatus}
                       onChange={handleChange}
-                      className="w-full border border-gray-400 rounded-lg p-2 bg-white focus:outline-none focus:ring-2 focus:ring-[#6a1a13] focus:border-rose-00"
+                      className="w-full border border-gray-400 rounded-lg p-2 bg-white focus:outline-none focus:ring-2 focus:ring-[#6a1a13] focus:border-transparent"
                       disabled={loading}
                     >
                       <option value="">-- Select Status --</option>
@@ -388,7 +414,7 @@ const ActionBoxUpdate = ({ item, onClose }) => {
                       value={formData.checkedVerified}
                       onChange={handleChange}
                       placeholder="Enter remark or initials"
-                      className="w-full focus:outline-none bg-white border border-gray-400 rounded-lg p-2 focus:ring-2 focus:ring-2-[#6a1a13] focus:ring-[#6a1a13]  focus:border-[#6a1a13]"
+                      className="w-full focus:outline-none bg-white border border-gray-400 rounded-lg p-2 focus:ring-2 focus:ring-[#6a1a13] focus:border-transparent"
                       disabled={loading}
                     />
                   </div>
@@ -397,19 +423,19 @@ const ActionBoxUpdate = ({ item, onClose }) => {
                 {/* Date + Text Fields */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {[
-                    { label: "CLAIM DATE", name: "claimDate" },
-                    { label: "BOOKING DATE", name: "bookingDate" },
+                    { label: "CLAIM DATE", name: "claimDate", type: "date" },
+                    { label: "BOOKING DATE", name: "bookingDate", type: "date" },
                     { label: "CLAIM NO", name: "claimNo", type: "text" },
                     { label: "REGISTER NO", name: "registerNo", type: "text" },
                     { label: "CONTROL NO", name: "controlNo", type: "text" },
-                    { label: "REGISTER DATE", name: "registerDate" },
+                    { label: "REGISTER DATE", name: "registerDate", type: "date" },
                   ].map((field) => (
                     <div key={field.name}>
                       <label className="block text-sm font-medium text-gray-500 mb-1">
                         {field.label}
                       </label>
                       <input
-                        type={field.type || "date"}
+                        type={field.type}
                         name={field.name}
                         value={
                           field.type === "text"
@@ -429,17 +455,15 @@ const ActionBoxUpdate = ({ item, onClose }) => {
             {/* ===== TAB 2: CREDIT DETAILS ===== */}
             {activeTab === "creditDetails" && (
               <div className="space-y-6">
-           
-
                 {/* New Credit Entry Form */}
-                <div className="rounded-lg bg-gray-50">
-                  <h3 className="font-semibold text-gray-500 mb-1">UPDATE CREDIT</h3>
+                <div className="rounded-lg bg-gray-50 p-4">
+                  <h3 className="font-semibold text-gray-500 mb-4">UPDATE CREDIT</h3>
                   
                   {/* Credit Numbers */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-500 mb-1">
-                        MRA NO
+                        Ebs credit no
                       </label>
                       <input
                         type="text"
@@ -448,30 +472,12 @@ const ActionBoxUpdate = ({ item, onClose }) => {
                         onChange={handleChange}
                         className="w-full border focus:outline-none border-gray-400 rounded-lg p-2 focus:ring-2 focus:ring-[#6a1a13] focus:border-transparent"
                         disabled={loading}
-                        placeholder="Enter MRA number"
+                        placeholder="Enter EBS number"
                       />
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-500 mb-1">
-                        CREDIT NO
-                      </label>
-                      <input
-                        type="text"
-                        name="creditNo"
-                        value={creditInputs.creditNo}
-                        onChange={handleChange}
-                        className="w-full border focus:outline-none border-gray-400 rounded-lg p-2 focus:ring-2 focus:ring-[#6a1a13] focus:border-transparent"
-                        disabled={loading}
-                        placeholder="Enter credit number"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Credit Dates */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-500 mb-1">
-                        MRA DATE
+                        Ebs credit date
                       </label>
                       <input
                         type="date"
@@ -482,9 +488,27 @@ const ActionBoxUpdate = ({ item, onClose }) => {
                         disabled={loading}
                       />
                     </div>
+                  </div>
+
+                  {/* Credit Dates */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-500 mb-1">
-                        CREDIT DATE
+                        Salable credit no
+                      </label>
+                      <input
+                        type="text"
+                        name="creditNo"
+                        value={creditInputs.creditNo}
+                        onChange={handleChange}
+                        className="w-full border focus:outline-none border-gray-400 rounded-lg p-2 focus:ring-2 focus:ring-[#6a1a13] focus:border-transparent"
+                        disabled={loading}
+                        placeholder="Enter Salable number"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-500 mb-1">
+                        Salable credit Date
                       </label>
                       <input
                         type="date"
@@ -499,7 +523,7 @@ const ActionBoxUpdate = ({ item, onClose }) => {
 
                   {/* Clear Button for Credit Inputs */}
                   {(creditInputs.mraNo || creditInputs.creditNo || creditInputs.mraDate || creditInputs.creditDate) && (
-                    <div className="flex justify-end mt-3">
+                    <div className="flex justify-end mt-4">
                       <button
                         type="button"
                         onClick={clearCreditInputs}
@@ -517,16 +541,16 @@ const ActionBoxUpdate = ({ item, onClose }) => {
                   <div className="border rounded-lg overflow-hidden">
                     <div className="bg-gray-50 p-3 border-b">
                       <h3 className="font-semibold text-gray-700">
-                        CREDIT DETAILS ({existingCredits.length})
+                        CREDIT DETAILS
                       </h3>
                     </div>
                     <table className="w-full text-sm">
                       <thead className="bg-gray-100">
                         <tr>
-                          <th className="border p-3 text-left font-semibold">MRA NO</th>
-                          <th className="border p-3 text-left font-semibold">MRA DATE</th>
-                          <th className="border p-3 text-left font-semibold">CREDIT NO</th>
-                          <th className="border p-3 text-left font-semibold">CREDIT DATE</th>
+                          <th className="border p-3 text-left font-semibold">Ebs credit no</th>
+                          <th className="border p-3 text-left font-semibold">Ebs credit date</th>
+                          <th className="border p-3 text-left font-semibold">Salable credit no</th>
+                          <th className="border p-3 text-left font-semibold">Salable credit Date</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -534,16 +558,22 @@ const ActionBoxUpdate = ({ item, onClose }) => {
                           <tr key={credit.credit_id || index}>
                             <td className="border p-3">{credit.mra_no || "-"}</td>
                             <td className="border p-3">
-                              {formatDateForInput(credit.mra_date)}
+                              {credit.mra_date ? formatDateForInput(credit.mra_date) : "-"}
                             </td>
                             <td className="border p-3">{credit.credit_no || "-"}</td>
                             <td className="border p-3">
-                              {formatDateForInput(credit.credit_date)}
+                              {credit.credit_date ? formatDateForInput(credit.credit_date) : "-"}
                             </td>
                           </tr>
                         ))}
                       </tbody>
                     </table>
+                  </div>
+                )}
+
+                {existingCredits.length === 0 && (
+                  <div className="text-center p-4 text-gray-500 border rounded-lg">
+                    No credit details available
                   </div>
                 )}
               </div>
@@ -553,7 +583,7 @@ const ActionBoxUpdate = ({ item, onClose }) => {
             <div className="flex justify-end space-x-3 mt-6 pt-6 border-t">
               <button
                 type="button"
-                onClick={onClose}
+                onClick={handleClose}
                 className="px-6 py-2 border bg-gray-200 border-gray-300 rounded-lg text-gray-700 hover:bg-gray-400 hover:text-white transition-colors duration-200 disabled:opacity-50"
                 disabled={loading}
               >

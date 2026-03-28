@@ -4,6 +4,8 @@ import EditModal from "../../../models/employee/LR/EditLrModal";
 import ClubbedModal from "../../../models/employee/LR/CluppedModal";
 import CaseSplitUpModal from "../../../models/employee/LR/CaseSplitUp";
 import Pagination from "../../pagination/pagenation";
+import { deleteClub } from "../../../service/employee/lrApi";
+import { showError,showSuccess } from "../../../utils/sweetAlert";
 
 // Table Header Component
 // Table Header Component
@@ -116,6 +118,20 @@ export default function LrUpdateable({
       return date.toLocaleDateString('en-GB');
     } catch (error) {
       return dateString;
+    }
+  };
+
+    const handleDeleteClub = async (referenceNo) => {
+    try {
+      await deleteClub(referenceNo);
+      // Refresh the data after successful deletion
+      onRefreshData();
+      // Close the modal
+      setClubbedModalOpen(false);
+      showSuccess("Club deleted successfully");
+    } catch (error) {
+      console.error("Error deleting club:", error);
+      showError(error.response?.data?.message || "Failed to delete club");
     }
   };
 
@@ -540,6 +556,7 @@ console.log("Ohh My God: ",filteredData);
         isOpen={clubbedModalOpen}
         onClose={() => setClubbedModalOpen(false)}
         data={clubbedData}
+        onDeleteClub={handleDeleteClub}
       />
       <CaseSplitUpModal
         isOpen={caseSplitUpModalOpen}

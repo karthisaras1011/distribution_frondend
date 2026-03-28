@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Pencil, Trash2 } from "lucide-react";
+import { Pencil, Trash2, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { toast } from "react-toastify";
 import {
   deleteCompany,
@@ -22,6 +22,12 @@ export const CompanyTable = ({ searchTerm, refreshKey }) => {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(50);
 
+  // Sorting state
+  const [sortConfig, setSortConfig] = useState({
+    key: 'company_name', // Default sort by company name
+    direction: 'asc'
+  });
+
   useEffect(() => {
     fetchCompanies();
   }, [refreshKey]);
@@ -30,12 +36,13 @@ export const CompanyTable = ({ searchTerm, refreshKey }) => {
     try {
       setLoading(true);
       const response = await getCompanies();
-console.log(response);
+      console.log(response);
 
-      // ✅ Sort by company name alphabetically (A → Z)
-      const sorted = [...response.data.company].sort((a, b) =>
-        a.company_name.localeCompare(b.company_name)
-      );
+      // Get the companies array from response
+      const companiesData = response.data.company || response.data || [];
+
+      // Apply sorting
+      const sorted = sortCompanies(companiesData, sortConfig.key, sortConfig.direction);
 
       setCompanies(sorted);
       setCurrentPage(1);
@@ -48,6 +55,63 @@ console.log(response);
     } finally {
       setLoading(false);
     }
+  };
+
+  // Helper function to sort companies
+  const sortCompanies = (data, key, direction) => {
+    const sorted = [...data].sort((a, b) => {
+      let aValue = getNestedValue(a, key);
+      let bValue = getNestedValue(b, key);
+
+      // Handle undefined or null values
+      if (aValue === null || aValue === undefined) aValue = '';
+      if (bValue === null || bValue === undefined) bValue = '';
+
+      // Convert to string for comparison if not number
+      if (typeof aValue !== 'number' || typeof bValue !== 'number') {
+        aValue = String(aValue).toLowerCase();
+        bValue = String(bValue).toLowerCase();
+      }
+
+      if (direction === 'asc') {
+        return aValue > bValue ? 1 : -1;
+      } else {
+        return aValue < bValue ? 1 : -1;
+      }
+    });
+    return sorted;
+  };
+
+  // Helper function to get nested object values
+  const getNestedValue = (obj, path) => {
+    return path.split('.').reduce((current, key) => {
+      return current && current[key] !== undefined ? current[key] : null;
+    }, obj);
+  };
+
+  // Handle sorting
+  const handleSort = (key) => {
+    let direction = 'asc';
+    if (sortConfig.key === key && sortConfig.direction === 'asc') {
+      direction = 'desc';
+    }
+    
+    const newSortConfig = { key, direction };
+    setSortConfig(newSortConfig);
+    
+    // Sort the companies
+    const sortedCompanies = sortCompanies(companies, key, direction);
+    setCompanies(sortedCompanies);
+  };
+
+  // Get sort icon for header
+  const getSortIcon = (key) => {
+    if (sortConfig.key !== key) {
+      return <ArrowUpDown size={14} className="ml-1 text-gray-400" />;
+    }
+    return sortConfig.direction === 'asc' 
+      ? <ArrowUp size={14} className="ml-1 text-[#884d51]" />
+      : <ArrowDown size={14} className="ml-1 text-[#884d51]" />;
   };
 
   const handleStatusChange = async (id, currentStatus) => {
@@ -143,9 +207,7 @@ console.log(response);
       deletedCompany = companies.find((c) => c.id === deleteModal.id);
 
       setCompanies((prev) =>
-        prev
-          .filter((company) => company.id !== deleteModal.id)
-          .sort((a, b) => a.company_name.localeCompare(b.company_name))
+        prev.filter((company) => company.id !== deleteModal.id)
       );
 
       await deleteCompany(deleteModal.id);
@@ -158,9 +220,7 @@ console.log(response);
       setDeleteModal(null);
     } catch (err) {
       setCompanies((prev) =>
-        [...prev, deletedCompany].sort((a, b) =>
-          a.company_name.localeCompare(b.company_name)
-        )
+        [...prev, deletedCompany]
       );
 
       toast.error(err.response?.data?.message || "Failed to delete company", {
@@ -213,18 +273,66 @@ console.log(response);
       )}
 
       <div className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
-        <div className="overflow-x-auto overflow-y-auto max-h-[700px] scrollbar-hide">
+        <div className="overflow-x-auto overflow-y-auto max-h-[700px] ">
           <table className="w-full border-collapse">
-            <thead className="bg-gray-100 text-gray-600 uppercase text-xs">
+            <thead className="bg-gray-100 text-gray-600 uppercase text-xs sticky top-0 z-10">
               <tr>
-                <th className="p-3 text-left ">S.No</th>
-                <th className="p-3 text-left ">Actions</th>
-                <th className="p-3 text-left ">Company</th>
-                <th className="p-3 text-left ">Type</th>
-                <th className="p-3 text-left ">Email</th>
-                <th className="p-3 text-left ">Company Acronym</th>
-                <th className="p-3 text-left ">Status</th>
-                <th className="p-3 text-left ">Booking Status</th>
+                <th className="p-3 text-left sticky left-0 bg-gray-100 z-20">S.No</th>
+                <th className="p-3 text-left sticky left-[70px] bg-gray-100 z-20">Actions</th>
+                <th 
+                  className="p-3 text-left cursor-pointer hover:bg-gray-200 transition-colors"
+                  onClick={() => handleSort('company_name')}
+                >
+                  <div className="flex items-center">
+                    Company
+                    {getSortIcon('company_name')}
+                  </div>
+                </th>
+                <th 
+                  className="p-3 text-left cursor-pointer hover:bg-gray-200 transition-colors"
+                  onClick={() => handleSort('product_type')}
+                >
+                  <div className="flex items-center">
+                    Type
+                    {getSortIcon('product_type')}
+                  </div>
+                </th>
+                <th 
+                  className="p-3 text-left cursor-pointer hover:bg-gray-200 transition-colors"
+                  onClick={() => handleSort('company_email')}
+                >
+                  <div className="flex items-center">
+                    Email
+                    {getSortIcon('company_email')}
+                  </div>
+                </th>
+                <th 
+                  className="p-3 text-left cursor-pointer hover:bg-gray-200 transition-colors"
+                  onClick={() => handleSort('reference_id')}
+                >
+                  <div className="flex items-center">
+                    Company Acronym
+                    {getSortIcon('reference_id')}
+                  </div>
+                </th>
+                <th 
+                  className="p-3 text-left cursor-pointer hover:bg-gray-200 transition-colors"
+                  onClick={() => handleSort('company_status')}
+                >
+                  <div className="flex items-center">
+                    Status
+                    {getSortIcon('company_status')}
+                  </div>
+                </th>
+                <th 
+                  className="p-3 text-left cursor-pointer hover:bg-gray-200 transition-colors"
+                  onClick={() => handleSort('booking_status')}
+                >
+                  <div className="flex items-center">
+                    Booking Status
+                    {getSortIcon('booking_status')}
+                  </div>
+                </th>
               </tr>
             </thead>
             <tbody className="text-gray-600">
@@ -240,10 +348,10 @@ console.log(response);
                     key={company.id}
                     className="border-b border-gray-100 hover:bg-gray-50 transition-colors"
                   >
-                    <td className="border border-gray-200 px-4 py-3 text-[16px] bg-white z-10 font-medium">
+                    <td className="border border-gray-200 px-4 py-3 text-[16px] sticky left-0 bg-white z-10 font-medium">
                       {(currentPage - 1) * itemsPerPage + index + 1}
                     </td>
-                    <td className="px-4 py-2 border border-gray-200 text-[16px]">
+                    <td className="px-4 py-2 border border-gray-200 text-[16px] sticky left-[70px] bg-white z-10">
                       <div className="flex gap-1">
                         <button
                           onClick={() => setEditModal(company)}

@@ -119,3 +119,15 @@ export const clubInvoiceLr = async (clubbingData) => {
     throw err;
   }
 };
+
+export const deleteClub = async (referenceNo) => {
+  try {
+    const res = await lr.delete('/club/delete', {
+      data: { reference_no: referenceNo }
+    });
+    return res.data;
+  } catch (err) {
+    console.error("❌ Delete Club error:", err);
+    throw err;
+  }
+};

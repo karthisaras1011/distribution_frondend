@@ -5,6 +5,7 @@ import React from 'react';
 import { Icon } from '@iconify/react';
 import { useAuth } from '../contexts/AuthContext';
 import { NavLink } from 'react-router-dom';
+
 import "../index.css";
 
 const Sidebar = ({ isSidebarOpen, toggleSidebarState }) => {
@@ -61,6 +62,7 @@ const Sidebar = ({ isSidebarOpen, toggleSidebarState }) => {
       items:[
        // { icon: 'mdi:currency-usd', label: 'Cheque-Pending', path: 'cheque-pending' },
           { icon: 'mdi:map-marker-path', label: 'Routing', path: 'routing' },
+          { icon: 'mdi:help-circle', label: 'FAQ', path: 'faq' }
       ]
     }
   ];
@@ -95,13 +97,13 @@ const Sidebar = ({ isSidebarOpen, toggleSidebarState }) => {
         { icon: 'mdi:file-search', label: 'Missing Invoices', path: 'mising' },
       ]
     },
-    {
-      title: 'OPTIMIZE',
-      items: [
-       { icon: 'mdi:image-remove', label: 'Delete Cheque Images', path: 'img' },
-       // { icon: 'mdi:file-remove', label: 'Delete Invoice Images', path: 'voice' },
-      ]
-    }
+    // {
+    //   title: 'OPTIMIZE',
+    //   items: [
+    //    //{ icon: 'mdi:image-remove', label: 'Delete Cheque Images', path: 'img' },
+    //    // { icon: 'mdi:file-remove', label: 'Delete Invoice Images', path: 'voice' },
+    //   ]
+    // }
   ];
 
   // Determine which menu to show based on user type

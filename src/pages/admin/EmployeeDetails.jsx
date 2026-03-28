@@ -14,6 +14,316 @@ import { getCompanies } from "../../service/admin/customerApi";
 import { extractArray } from "../../utils/extractArray";
 import { useNavigate } from "react-router-dom";
 
+// Company Dropdown Component - Moved outside main component
+const CompanyDropdown = ({ 
+  companySearch, 
+  setCompanySearch, 
+  showCompanyDropdown, 
+  setShowCompanyDropdown, 
+  filteredCompanies, 
+  formData, 
+  handleCompanySelect, 
+  handleRemoveCompany, 
+  clearAllCompanies,
+  companies 
+}) => (
+  <div className="space-y-3">
+    <h3 className="text-lg font-semibold text-gray-800">COMPANY NAME</h3>
+
+    {/* Search Input */}
+    <div className="relative">
+      <Search className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
+      <input
+        type="text"
+        placeholder="Search companies..."
+        value={companySearch}
+        onChange={(e) => setCompanySearch(e.target.value)}
+        onFocus={() => setShowCompanyDropdown(true)}
+        className="w-full pl-10 pr-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+      />
+    </div>
+
+    {/* Company List */}
+    {showCompanyDropdown && (
+      <div className="max-h-60 overflow-y-auto border border-gray-300 rounded-lg">
+        {filteredCompanies.length > 0 ? (
+          filteredCompanies.map((company) => (
+            <div
+              key={company.company_id}
+              className={`p-3 border-b border-gray-200 cursor-pointer hover:bg-gray-50 ${
+                formData.companyName.includes(company.company_id)
+                  ? "bg-blue-50 border-blue-200"
+                  : ""
+              }`}
+              onClick={() => handleCompanySelect(company.company_id)}
+            >
+              <div className="flex items-center">
+                <input
+                  type="checkbox"
+                  checked={formData.companyName.includes(company.company_id)}
+                  onChange={() => {}}
+                  className="h-4 w-4 text-blue-600 rounded"
+                />
+                <span className="ml-3 text-gray-700">
+                  {company.company_name}
+                </span>
+              </div>
+            </div>
+          ))
+        ) : (
+          <div className="p-3 text-gray-500 text-center">
+            No companies found
+          </div>
+        )}
+      </div>
+    )}
+
+    {/* Selected Companies */}
+    {formData.companyName.length > 0 && (
+      <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+        <div className="flex justify-between items-center mb-2">
+          <span className="text-sm font-medium text-blue-800">
+            Selected Companies ({formData.companyName.length})
+          </span>
+          <button
+            type="button"
+            onClick={clearAllCompanies}
+            className="text-xs text-red-500 hover:text-red-700 font-medium"
+          >
+            Clear All
+          </button>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {formData.companyName.map((companyId) => {
+            const company = companies.find((c) => c.company_id === companyId);
+            return company ? (
+              <div
+                key={companyId}
+                className="inline-flex items-center bg-blue-100 text-blue-800 text-sm px-3 py-1 rounded-full border border-blue-200"
+              >
+                <span>{company.company_name}</span>
+                <button
+                  type="button"
+                  onClick={() => handleRemoveCompany(companyId)}
+                  className="ml-2 text-red-500 hover:text-red-700 rounded-full p-0.5"
+                >
+                  <X size={14} />
+                </button>
+              </div>
+            ) : null;
+          })}
+        </div>
+      </div>
+    )}
+  </div>
+);
+
+// Form Fields Component - Moved outside main component
+const FormFields = ({ 
+  isEdit = false, 
+  selectedDesignation,
+  designations,
+  formData,
+  handleInputChange,
+  handleDesignationSelect,
+  handleSubmit,
+  handleCloseModal,
+  formLoading,
+  // Company dropdown props
+  companySearch,
+  setCompanySearch,
+  showCompanyDropdown,
+  setShowCompanyDropdown,
+  filteredCompanies,
+  handleCompanySelect,
+  handleRemoveCompany,
+  clearAllCompanies,
+  companies
+}) => (
+  <form onSubmit={(e) => handleSubmit(e, isEdit)} className="space-y-6">
+    {/* Company Dropdown for specific designations */}
+    {(selectedDesignation === "Add New Warehouse Person" ||
+      selectedDesignation === "Add New Manager" ||
+      selectedDesignation === "Add New Operator") && (
+      <CompanyDropdown
+        companySearch={companySearch}
+        setCompanySearch={setCompanySearch}
+        showCompanyDropdown={showCompanyDropdown}
+        setShowCompanyDropdown={setShowCompanyDropdown}
+        filteredCompanies={filteredCompanies}
+        formData={formData}
+        handleCompanySelect={handleCompanySelect}
+        handleRemoveCompany={handleRemoveCompany}
+        clearAllCompanies={clearAllCompanies}
+        companies={companies}
+      />
+    )}
+
+    {/* Designation Dropdown */}
+    <div className="space-y-2">
+      <h3 className="text-lg font-semibold text-gray-800">DESIGNATION</h3>
+      <select
+        value={selectedDesignation}
+        onChange={(e) => handleDesignationSelect(e.target.value)}
+        className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-700"
+      >
+        <option value="">Select Designation</option>
+        {designations.map((designation) => {
+          const designationName =
+            designation.designation_name ||
+            designation.designation ||
+            designation;
+          const displayName = designationName.startsWith("Add New ")
+            ? designationName.replace("Add New ", "")
+            : designationName;
+          return (
+            <option
+              key={designationName}
+              value={`Add New ${designationName}`}
+            >
+              {displayName}
+            </option>
+          );
+        })}
+      </select>
+    </div>
+
+    {/* Name and Password */}
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div>
+        <label className="block text-lg font-semibold text-gray-800 mb-2">
+          {selectedDesignation ? selectedDesignation.replace("Add New ", "").toUpperCase() : "EMPLOYEE NAME"}
+        </label>
+        <input
+          type="text"
+          name="employeeName"
+          value={formData.employeeName}
+          onChange={handleInputChange}
+          className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          placeholder="Enter name"
+          required
+        />
+      </div>
+
+      {(selectedDesignation === "Add New Warehouse Person" ||
+        selectedDesignation === "Add New Driver" ||
+        selectedDesignation === "Add New Manager" ||
+        selectedDesignation === "Add New Operator") && (
+        <div>
+          <label className="block text-lg font-semibold text-gray-800 mb-2">
+            PASSWORD
+          </label>
+          <input
+            type="password"
+            name="password"
+            value={formData.password}
+            onChange={handleInputChange}
+            className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            placeholder="Enter password"
+            required={!isEdit}
+          />
+        </div>
+      )}
+    </div>
+
+    {/* City and Mobile */}
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div>
+        <label className="block text-lg font-semibold text-gray-800 mb-2">
+          CITY
+        </label>
+        <input
+          type="text"
+          name="city"
+          value={formData.city}
+          onChange={handleInputChange}
+          className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          placeholder="Enter city"
+          required
+        />
+      </div>
+      <div>
+        <label className="block text-lg font-semibold text-gray-800 mb-2">
+          MOBILE NO
+        </label>
+        <input
+          type="tel"
+          name="mobileNo"
+          value={formData.mobileNo}
+          onChange={handleInputChange}
+          inputMode="numeric"
+           maxLength={10}
+           minLength={10}
+          className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          placeholder="Enter mobile number"
+          required
+        />
+      </div>
+    </div>
+
+    {/* License No for Driver */}
+    {selectedDesignation === "Add New Driver" && (
+      <div>
+        <label className="block text-lg font-semibold text-gray-800 mb-2">
+          LICENSE NO
+        </label>
+        <input
+          type="text"
+          name="licenseNo"
+          value={formData.licenseNo}
+          onChange={handleInputChange}
+          className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          placeholder="Enter license number"
+        />
+      </div>
+    )}
+
+    {/* Alternate Mobile */}
+    <div>
+      <label className="block text-lg font-semibold text-gray-800 mb-2">
+        ALTERNATE MOBILE NO
+      </label>
+      <input
+        type="tel"
+        name="alternateNo"
+        value={formData.alternateNo}
+        onChange={handleInputChange}
+        className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+        placeholder="Enter alternate mobile number"
+      />
+    </div>
+
+    {/* Action Buttons */}
+    <div className="flex gap-4 pt-4">
+      <button
+        type="button"
+        onClick={handleCloseModal}
+        disabled={formLoading}
+        className="flex-1 px-6 py-3 border-2 border-gray-300 text-gray-700 font-semibold rounded-lg hover:bg-gray-50 disabled:opacity-50"
+      >
+        Cancel
+      </button>
+      <button
+        type="submit"
+        disabled={formLoading}
+        className="flex-1 px-6 py-3 bg-blue-500 text-white font-semibold rounded-lg hover:bg-blue-600 disabled:opacity-50 flex items-center justify-center"
+      >
+        {formLoading ? (
+          <>
+            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+            {isEdit ? "Updating..." : "Creating..."}
+          </>
+        ) : isEdit ? (
+          "Update"
+        ) : (
+          "Create"
+        )}
+      </button>
+    </div>
+  </form>
+);
+
+// Main Component
 const EmployeeDetails = () => {
   const [employees, setEmployees] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -222,9 +532,29 @@ const EmployeeDetails = () => {
 
   // Form handlers
   const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-  };
+  const { name, value } = e.target;
+
+  // Mobile & Alternate number validation
+  if (name === "mobileNo" || name === "alternateNo") {
+    // Only numbers allow
+    let numericValue = value.replace(/\D/g, "");
+
+    // Limit to 10 digits
+    if (numericValue.length > 10) {
+      numericValue = numericValue.slice(0, 10);
+    }
+
+    setFormData((prev) => ({
+      ...prev,
+      [name]: numericValue,
+    }));
+  } else {
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  }
+};
 
   const handleSubmit = async (e, isEdit = false) => {
     e.preventDefault();
@@ -356,268 +686,6 @@ const EmployeeDetails = () => {
 
   const handlePageChange = (page) => setCurrentPage(page);
 
-  // Searchable Company Dropdown Component
-  const CompanyDropdown = () => (
-    <div className="space-y-3">
-      <h3 className="text-lg font-semibold text-gray-800">COMPANY NAME</h3>
-
-      {/* Search Input */}
-      <div className="relative">
-        <Search className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
-        <input
-          type="text"
-          placeholder="Search companies..."
-          value={companySearch}
-          onChange={(e) => setCompanySearch(e.target.value)}
-          onFocus={() => setShowCompanyDropdown(true)}
-          className="w-full pl-10 pr-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-        />
-      </div>
-
-      {/* Company List */}
-      {showCompanyDropdown && (
-        <div className="max-h-60 overflow-y-auto border border-gray-300 rounded-lg">
-          {filteredCompanies.length > 0 ? (
-            filteredCompanies.map((company) => (
-              <div
-                key={company.company_id}
-                className={`p-3 border-b border-gray-200 cursor-pointer hover:bg-gray-50 ${
-                  formData.companyName.includes(company.company_id)
-                    ? "bg-blue-50 border-blue-200"
-                    : ""
-                }`}
-                onClick={() => handleCompanySelect(company.company_id)}
-              >
-                <div className="flex items-center">
-                  <input
-                    type="checkbox"
-                    checked={formData.companyName.includes(company.company_id)}
-                    onChange={() => {}}
-                    className="h-4 w-4 text-blue-600 rounded"
-                  />
-                  <span className="ml-3 text-gray-700">
-                    {company.company_name}
-                  </span>
-                </div>
-              </div>
-            ))
-          ) : (
-            <div className="p-3 text-gray-500 text-center">
-              No companies found
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Selected Companies */}
-      {formData.companyName.length > 0 && (
-        <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
-          <div className="flex justify-between items-center mb-2">
-            <span className="text-sm font-medium text-blue-800">
-              Selected Companies ({formData.companyName.length})
-            </span>
-            <button
-              type="button"
-              onClick={clearAllCompanies}
-              className="text-xs text-red-500 hover:text-red-700 font-medium"
-            >
-              Clear All
-            </button>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {formData.companyName.map((companyId) => {
-              const company = companies.find((c) => c.company_id === companyId);
-              return company ? (
-                <div
-                  key={companyId}
-                  className="inline-flex items-center bg-blue-100 text-blue-800 text-sm px-3 py-1 rounded-full border border-blue-200"
-                >
-                  <span>{company.company_name}</span>
-                  <button
-                    type="button"
-                    onClick={() => handleRemoveCompany(companyId)}
-                    className="ml-2 text-red-500 hover:text-red-700 rounded-full p-0.5"
-                  >
-                    <X size={14} />
-                  </button>
-                </div>
-              ) : null;
-            })}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-
-  // Common form fields
-  const FormFields = ({ isEdit = false }) => (
-    <form onSubmit={(e) => handleSubmit(e, isEdit)} className="space-y-6">
-      {/* Company Dropdown for specific designations */}
-      {(selectedDesignation === "Add New Warehouse Person" ||
-        selectedDesignation === "Add New Manager" ||
-        selectedDesignation === "Add New Operator") && <CompanyDropdown />}
-
-      {/* Designation Dropdown */}
-      <div className="space-y-2">
-        <h3 className="text-lg font-semibold text-gray-800">DESIGNATION</h3>
-        <select
-          value={selectedDesignation}
-          onChange={(e) => handleDesignationSelect(e.target.value)}
-          className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-700"
-        >
-          <option value="">Select Designation</option>
-          {designations.map((designation) => {
-            const designationName =
-              designation.designation_name ||
-              designation.designation ||
-              designation;
-            const displayName = designationName.startsWith("Add New ")
-              ? designationName.replace("Add New ", "")
-              : designationName;
-            return (
-              <option
-                key={designationName}
-                value={`Add New ${designationName}`}
-              >
-                {displayName}
-              </option>
-            );
-          })}
-        </select>
-      </div>
-
-      {/* Name and Password */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label className="block text-lg font-semibold text-gray-800 mb-2">
-            {selectedDesignation.replace("Add New ", "").toUpperCase()}
-          </label>
-          <input
-            type="text"
-            name="employeeName"
-            value={formData.employeeName}
-            onChange={handleInputChange}
-            className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            placeholder="Enter name"
-            required
-          />
-        </div>
-
-        {(selectedDesignation === "Add New Warehouse Person" ||
-          selectedDesignation === "Add New Driver" ||
-          selectedDesignation === "Add New Manager" ||
-          selectedDesignation === "Add New Operator") && (
-          <div>
-            <label className="block text-lg font-semibold text-gray-800 mb-2">
-              PASSWORD
-            </label>
-            <input
-              type="password"
-              name="password"
-              value={formData.password}
-              onChange={handleInputChange}
-              className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="Enter password"
-              required={!isEdit}
-            />
-          </div>
-        )}
-      </div>
-
-      {/* City and Mobile */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label className="block text-lg font-semibold text-gray-800 mb-2">
-            CITY
-          </label>
-          <input
-            type="text"
-            name="city"
-            value={formData.city}
-            onChange={handleInputChange}
-            className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            placeholder="Enter city"
-            required
-          />
-        </div>
-        <div>
-          <label className="block text-lg font-semibold text-gray-800 mb-2">
-            MOBILE NO
-          </label>
-          <input
-            type="tel"
-            name="mobileNo"
-            value={formData.mobileNo}
-            onChange={handleInputChange}
-            className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            placeholder="Enter mobile number"
-            required
-          />
-        </div>
-      </div>
-
-      {/* License No for Driver */}
-      {selectedDesignation === "Add New Driver" && (
-        <div>
-          <label className="block text-lg font-semibold text-gray-800 mb-2">
-            LICENSE NO
-          </label>
-          <input
-            type="text"
-            name="licenseNo"
-            value={formData.licenseNo}
-            onChange={handleInputChange}
-            className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            placeholder="Enter license number"
-          />
-        </div>
-      )}
-
-      {/* Alternate Mobile */}
-      <div>
-        <label className="block text-lg font-semibold text-gray-800 mb-2">
-          ALTERNATE MOBILE NO
-        </label>
-        <input
-          type="tel"
-          name="alternateNo"
-          value={formData.alternateNo}
-          onChange={handleInputChange}
-          className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-          placeholder="Enter alternate mobile number"
-        />
-      </div>
-
-      {/* Action Buttons */}
-      <div className="flex gap-4 pt-4">
-        <button
-          type="button"
-          onClick={handleCloseModal}
-          disabled={formLoading}
-          className="flex-1 px-6 py-3 border-2 border-gray-300 text-gray-700 font-semibold rounded-lg hover:bg-gray-50 disabled:opacity-50"
-        >
-          Cancel
-        </button>
-        <button
-          type="submit"
-          disabled={formLoading}
-          className="flex-1 px-6 py-3 bg-blue-500 text-white font-semibold rounded-lg hover:bg-blue-600 disabled:opacity-50 flex items-center justify-center"
-        >
-          {formLoading ? (
-            <>
-              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
-              {isEdit ? "Updating..." : "Creating..."}
-            </>
-          ) : isEdit ? (
-            "Update"
-          ) : (
-            "Create"
-          )}
-        </button>
-      </div>
-    </form>
-  );
-
   return (
     <div className="p-6 bg-white min-h-screen">
       {/* Header */}
@@ -665,7 +733,7 @@ const EmployeeDetails = () => {
 
       {/* Table */}
       <div className="relative rounded-xl shadow-sm border border-gray-200 mt-4">
-      <div className="overflow-x-auto overflow-y-auto max-h-[600px] scrollbar-hide">
+      <div className="overflow-x-auto overflow-y-auto max-h-[600px] ">
         <table className="w-full border-collapse">
           <thead className="bg-gray-100 text-gray-600 uppercase text-xs sticky top-0 z-10">
             <tr>
@@ -786,7 +854,27 @@ const EmployeeDetails = () => {
               </button>
             </div>
             <div className="p-6 max-h-[70vh] overflow-y-auto">
-              <FormFields />
+              <FormFields
+                isEdit={false}
+                selectedDesignation={selectedDesignation}
+                designations={designations}
+                formData={formData}
+                handleInputChange={handleInputChange}
+                handleDesignationSelect={handleDesignationSelect}
+                handleSubmit={handleSubmit}
+                handleCloseModal={handleCloseModal}
+                formLoading={formLoading}
+                // Company dropdown props
+                companySearch={companySearch}
+                setCompanySearch={setCompanySearch}
+                showCompanyDropdown={showCompanyDropdown}
+                setShowCompanyDropdown={setShowCompanyDropdown}
+                filteredCompanies={filteredCompanies}
+                handleCompanySelect={handleCompanySelect}
+                handleRemoveCompany={handleRemoveCompany}
+                clearAllCompanies={clearAllCompanies}
+                companies={companies}
+              />
             </div>
           </div>
         </div>
@@ -808,7 +896,27 @@ const EmployeeDetails = () => {
               </button>
             </div>
             <div className="p-6 max-h-[70vh] overflow-y-auto">
-              <FormFields isEdit={true} />
+              <FormFields
+                isEdit={true}
+                selectedDesignation={selectedDesignation}
+                designations={designations}
+                formData={formData}
+                handleInputChange={handleInputChange}
+                handleDesignationSelect={handleDesignationSelect}
+                handleSubmit={handleSubmit}
+                handleCloseModal={handleCloseModal}
+                formLoading={formLoading}
+                // Company dropdown props
+                companySearch={companySearch}
+                setCompanySearch={setCompanySearch}
+                showCompanyDropdown={showCompanyDropdown}
+                setShowCompanyDropdown={setShowCompanyDropdown}
+                filteredCompanies={filteredCompanies}
+                handleCompanySelect={handleCompanySelect}
+                handleRemoveCompany={handleRemoveCompany}
+                clearAllCompanies={clearAllCompanies}
+                companies={companies}
+              />
             </div>
           </div>
         </div>
